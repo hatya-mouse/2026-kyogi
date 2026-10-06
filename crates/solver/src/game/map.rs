@@ -1,4 +1,4 @@
-use crate::game::{CellId, CellType};
+use crate::game::{CellId, CellType, Direction};
 
 pub struct Map {
     /// The width and height of the map.
@@ -22,6 +22,12 @@ impl Map {
     #[inline]
     pub fn height(&self) -> usize {
         self.size.1
+    }
+
+    /// The number of cells in the map.
+    #[inline]
+    pub fn cell_count(&self) -> usize {
+        self.size.0 * self.size.1
     }
 
     /// Gets the cell with the given CellId.
@@ -72,9 +78,9 @@ impl Map {
         let (icol, irow) = (col as isize, row as isize);
 
         let offsets = if row % 2 == 0 {
-            [(1, 0), (-1, 0), (0, 1), (0, -1), (-1, 1), (-1, -1)]
-        } else {
             [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1)]
+        } else {
+            [(1, 0), (-1, 0), (0, 1), (0, -1), (-1, 1), (-1, -1)]
         };
         offsets
             .iter()
@@ -88,5 +94,34 @@ impl Map {
                     .and_then(|cell| if cell.is_passable() { Some(id) } else { None })
             })
             .collect()
+    }
+
+    /// Returns the direction used to move from `from` to its adjacent cell `to`.
+    /// Returns `None` when `to` is outside the board or not adjacent to `from`.
+    pub fn direction_to(&self, from: CellId, to: CellId) -> Option<Direction> {
+        if from.as_usize() >= self.cells.len() || to.as_usize() >= self.cells.len() {
+            return None;
+        }
+
+        let (from_col, from_row) = self.get_coord_from_id(from);
+        let (to_col, to_row) = self.get_coord_from_id(to);
+        let delta = (
+            to_col as isize - from_col as isize,
+            to_row as isize - from_row as isize,
+        );
+
+        match (from_row % 2, delta) {
+            (_, (1, 0)) => Some(Direction::Right),
+            (_, (-1, 0)) => Some(Direction::Left),
+            (0, (0, -1)) => Some(Direction::TopLeft),
+            (0, (1, -1)) => Some(Direction::TopRight),
+            (0, (1, 1)) => Some(Direction::BottomRight),
+            (0, (0, 1)) => Some(Direction::BottomLeft),
+            (1, (-1, -1)) => Some(Direction::TopLeft),
+            (1, (0, -1)) => Some(Direction::TopRight),
+            (1, (0, 1)) => Some(Direction::BottomRight),
+            (1, (-1, 1)) => Some(Direction::BottomLeft),
+            _ => None,
+        }
     }
 }

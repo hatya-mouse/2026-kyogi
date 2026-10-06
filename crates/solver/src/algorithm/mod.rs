@@ -1,9 +1,14 @@
 mod fill_remaining;
+mod graph;
 mod route;
+mod selection;
 mod utils;
 
-use crate::game::{AgentKind, CellId, DayData, DayPlan, Map};
-use std::collections::HashSet;
+use crate::{
+    algorithm::graph::AdjGraph,
+    game::{AgentKind, Brand, CellId, DayData, DayPlan, Map, Spot},
+};
+use std::collections::{HashMap, HashSet};
 
 /// A temporary plan state that is used during planning.
 struct PlanningState {
@@ -13,6 +18,8 @@ struct PlanningState {
     cursor: Vec<AgentCursor>,
     /// ID of spots that have already been reserved by agents.
     reserved_spots: HashSet<CellId>,
+    /// Brands that have already been reserved by agents.
+    reserved_brands: HashSet<Brand>,
 }
 
 impl PlanningState {
@@ -33,6 +40,7 @@ impl PlanningState {
                 })
                 .collect(),
             reserved_spots: HashSet::new(),
+            reserved_brands: HashSet::new(),
         }
     }
 }
@@ -53,11 +61,20 @@ struct AgentCursor {
 pub struct Solver<'a> {
     /// The current map of the game.
     map: &'a Map,
+    /// Spots on the map.
+    spots: HashMap<CellId, Spot>,
+    /// Adjacent graph for the map.
+    adj_graph: AdjGraph,
 }
 
 impl<'a> Solver<'a> {
-    pub fn new(map: &'a Map) -> Self {
-        Self { map }
+    pub fn new(map: &'a Map, spots: HashMap<CellId, Spot>) -> Self {
+        let adj_graph = AdjGraph::build(map);
+        Self {
+            map,
+            spots,
+            adj_graph,
+        }
     }
 
     /// Create a solve result for the day.

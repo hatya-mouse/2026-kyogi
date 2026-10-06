@@ -32,9 +32,9 @@ pub(crate) struct ApiInitialData {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ApiMap {
     /// The height of the map.
-    pub height: i64,
+    pub height: u32,
     /// The width of the map.
-    pub width: i64,
+    pub width: u32,
     /// Cells of the map.
     pub cells: Vec<Vec<CellType>>,
 }
@@ -44,9 +44,9 @@ pub(crate) struct ApiMap {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ApiSpot {
     /// The brand ID of the spot.
-    pub brand: i64,
+    pub brand: u32,
     /// The position of the spot.
     pub pos: CellId,
     /// Number of stocks of the spot.
-    pub stocks: i64,
+    pub stocks: u32,
 }

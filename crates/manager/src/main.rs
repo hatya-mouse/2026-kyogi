@@ -2,10 +2,17 @@ mod cli;
 mod config;
 mod game_api;
 
-use crate::{cli::Cli, config::load_config, game_api::Api};
+use crate::{
+    cli::Cli,
+    config::load_config,
+    game_api::{Api, ApiAgentKindAnswer},
+};
 use clap::Parser;
 use owo_colors::OwoColorize;
-use solver::tui::{println_error, println_info};
+use solver::{
+    game::AgentKind,
+    tui::{println_error, println_info},
+};
 use std::thread;
 
 #[tokio::main]
@@ -76,4 +83,15 @@ async fn main() {
         println_info(format!("{}", "Retrying...".yellow()));
         thread::sleep(std::time::Duration::from_millis(1000));
     };
+
+    if let Err(err) = api
+        .post_agents(&ApiAgentKindAnswer(vec![
+            AgentKind::Patrol;
+            initial_data.agents.len()
+        ]))
+        .await
+    {
+        println_error(format!("Error submitting the agent kind:\n{}", err));
+        return;
+    }
 }

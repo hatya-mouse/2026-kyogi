@@ -2,7 +2,7 @@ use crate::game::CellId;
 use serde::Deserialize;
 use serde_repr::{Deserialize_repr, Serialize_repr};
 
-#[derive(Deserialize_repr, Serialize_repr, Debug, PartialEq)]
+#[derive(Deserialize_repr, Serialize_repr, Debug, PartialEq, Clone)]
 #[repr(u8)]
 pub enum AgentKind {
     Patrol = 0,
