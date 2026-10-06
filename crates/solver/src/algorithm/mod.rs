@@ -1,7 +1,9 @@
 mod fill_remaining;
+mod route;
 mod utils;
 
 use crate::game::{AgentKind, CellId, DayData, DayPlan, Map};
+use std::collections::HashSet;
 
 /// A temporary plan state that is used during planning.
 struct PlanningState {
@@ -9,6 +11,8 @@ struct PlanningState {
     plan: DayPlan,
     /// Current temporary state of the agents.
     cursor: Vec<AgentCursor>,
+    /// ID of spots that have already been reserved by agents.
+    reserved_spots: HashSet<CellId>,
 }
 
 impl PlanningState {
@@ -28,6 +32,7 @@ impl PlanningState {
                     fixed_steps: 0,
                 })
                 .collect(),
+            reserved_spots: HashSet::new(),
         }
     }
 }

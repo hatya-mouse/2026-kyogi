@@ -14,6 +14,12 @@ pub enum CellType {
     Pond = 3,
 }
 
+impl CellType {
+    pub fn is_passable(&self) -> bool {
+        !matches!(self, Self::Pond)
+    }
+}
+
 // --- TrafficStatus ---
 
 /// The traffic status of the road tile.
@@ -40,7 +46,7 @@ impl TrafficStatus {
 // --- CellId ---
 
 /// An ID that represents the position on the map.
-#[derive(Serialize, Deserialize, Hash, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Hash, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CellId(pub usize);
 
 impl Debug for CellId {
@@ -50,6 +56,13 @@ impl Debug for CellId {
 }
 
 impl CellId {
+    pub const ZERO: CellId = CellId(0);
+
+    #[inline]
+    pub fn as_usize(&self) -> usize {
+        self.0
+    }
+
     #[inline]
     pub fn x(self, width: usize) -> usize {
         self.0 % width

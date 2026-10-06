@@ -55,7 +55,7 @@ impl Map {
     }
 
     /// Calculates a distance between two points on the map.
-    pub fn distance(&self, start: CellId, end: CellId) -> usize {
+    pub fn distance(&self, start: CellId, end: CellId) -> u32 {
         let start_coord = self.get_xyz_coord_from_id(start);
         let end_coord = self.get_xyz_coord_from_id(end);
 
@@ -63,6 +63,30 @@ impl Map {
         let dy = end_coord.1 - start_coord.1;
         let dz = end_coord.2 - start_coord.2;
 
-        (dx.abs() + dy.abs() + dz.abs()) as usize / 2
+        (dx.abs() + dy.abs() + dz.abs()) as u32 / 2
+    }
+
+    /// Gets the neighbors of a given index on the map, excluding the impassable tiles.
+    pub fn get_neighbors(&self, id: CellId) -> Vec<CellId> {
+        let (col, row) = self.get_coord_from_id(id);
+        let (icol, irow) = (col as isize, row as isize);
+
+        let offsets = if row % 2 == 0 {
+            [(1, 0), (-1, 0), (0, 1), (0, -1), (-1, 1), (-1, -1)]
+        } else {
+            [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1)]
+        };
+        offsets
+            .iter()
+            .map(|(dc, dr)| (icol + dc, irow + dr))
+            .filter(|&(c, r)| {
+                c >= 0 && r >= 0 && c < self.width() as isize && r < self.height() as isize
+            })
+            .filter_map(|(c, r)| {
+                let id = self.get_id_from_coord((c as usize, r as usize));
+                self.get_cell(&id)
+                    .and_then(|cell| if cell.is_passable() { Some(id) } else { None })
+            })
+            .collect()
     }
 }

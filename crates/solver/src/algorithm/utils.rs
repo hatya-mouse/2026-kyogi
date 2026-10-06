@@ -12,11 +12,7 @@ impl Solver<'_> {
         action: &Action,
     ) -> u32 {
         match action {
-            Action::Move(dir) => {
-                let new_coord = dir.apply_to_coord(self.map.get_coord_from_id(cursor.pos));
-                let new_cell_id = self.map.get_id_from_coord(new_coord);
-                self.get_cell_steps(day, &new_cell_id)
-            }
+            Action::Move(_) => self.get_cell_steps(day, &cursor.pos),
             Action::Wait(steps) => steps.get(),
         }
     }
