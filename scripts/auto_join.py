@@ -37,7 +37,7 @@ def main() -> None:
     if args.verbose:
         command.append("--verbose")
 
-    starts = (12, 27, 42)
+    starts = (12, 27, 42, 57)
     while True:
         now = dt.datetime.now().astimezone()
         start = next_start(now, starts)
