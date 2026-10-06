@@ -1,15 +1,15 @@
 mod cost_map;
+mod distribution;
 mod fill_remaining;
 mod graph;
 mod route;
-mod selection;
 mod utils;
 
 use crate::{
     algorithm::{cost_map::CostMap, graph::AdjGraph},
-    game::{AgentKind, Brand, CellId, DayData, DayPlan, Map, Spot},
+    game::{CellId, DayData, DayPlan, Map, Spot},
 };
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 /// A temporary plan state that is used during planning.
 struct PlanningState {
@@ -17,10 +17,6 @@ struct PlanningState {
     plan: DayPlan,
     /// Current temporary state of the agents.
     cursor: Vec<AgentCursor>,
-    /// ID of spots that have already been reserved by agents.
-    reserved_spots: HashSet<CellId>,
-    /// Brands that have already been reserved by agents.
-    reserved_brands: HashSet<Brand>,
 }
 
 impl PlanningState {
@@ -40,8 +36,6 @@ impl PlanningState {
                     fixed_steps: 0,
                 })
                 .collect(),
-            reserved_spots: HashSet::new(),
-            reserved_brands: HashSet::new(),
         }
     }
 }
@@ -84,10 +78,18 @@ impl<'a> Solver<'a> {
         let mut state = PlanningState::from_day(day);
         let cost_map = CostMap::build(self.map, day);
 
-        for agent_id in 0..day.agents.len() {
-            // For now skip supply agents
-            if day.agents[agent_id].kind != AgentKind::Patrol {
-                continue;
+        // Select spots for each agents
+        let assignments = self.distribute_agents(day, &state, &cost_map);
+
+        for (agent_id, spot) in assignments {
+            // Create a route to the spot
+            if let Some(cursor) = state.cursor.get_mut(agent_id) {
+                let route = self.get_route(&cost_map, cursor.pos, spot);
+                let Some(actions) = self.route_to_actions(&route) else {
+                    break;
+                };
+                state.plan.extend_actions(agent_id, actions);
+                cursor.pos = spot;
             }
         }
 

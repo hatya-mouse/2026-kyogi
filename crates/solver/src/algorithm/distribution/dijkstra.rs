@@ -5,8 +5,7 @@ use crate::{
 use std::{cmp::Reverse, collections::BinaryHeap};
 
 impl Solver<'_> {
-    /// Calculates the number of steps it takes to move to **reach the given `src` cell**.
-    /// This DOES NOT calculate the number of steps it takes to move to each cells from the src cell.
+    /// Calculates the number of steps it takes to move to the spots from the src cell.
     pub(super) fn dijkstra_backward(&self, cost_map: &CostMap, src: &CellId) -> Vec<u32> {
         // Create a priority queue that stores (distance, cell)
         let mut steps = vec![u32::MAX; self.map.cell_count()];
@@ -24,6 +23,10 @@ impl Solver<'_> {
                     continue;
                 }
 
+                let Some(move_cost) = cost_map.steps(current) else {
+                    continue;
+                };
+
                 // Loop neighbors and update the number of steps to the adjacent spots
                 let Some(neighbors) = self.adj_graph.neighbors(current) else {
                     continue;
@@ -32,9 +35,6 @@ impl Solver<'_> {
                     let neighbor_idx = neighbor.as_usize();
 
                     // Get the number of steps to move TO current cell FROM the neighbor cell
-                    let Some(move_cost) = cost_map.steps(neighbor) else {
-                        continue;
-                    };
                     let new_cost = current_steps.saturating_add(move_cost);
 
                     let Some(old_cost) = steps.get(neighbor_idx) else {

@@ -9,6 +9,28 @@ pub struct DayPlan {
     pub actions: Vec<Vec<Action>>,
 }
 
+impl DayPlan {
+    pub fn new(agents_num: usize) -> Self {
+        Self {
+            actions: vec![Vec::new(); agents_num],
+        }
+    }
+
+    /// Adds an action to the specific agent in the plan.
+    pub fn add_action(&mut self, agent_id: usize, action: Action) {
+        if let Some(agent_actions) = self.actions.get_mut(agent_id) {
+            agent_actions.push(action);
+        }
+    }
+
+    /// Adds multiple actions to the specific agent in the plan.
+    pub fn extend_actions(&mut self, agent_id: usize, actions: Vec<Action>) {
+        if let Some(agent_actions) = self.actions.get_mut(agent_id) {
+            agent_actions.extend(actions);
+        }
+    }
+}
+
 // --- Direction ---
 
 /// A diretion on the map.
