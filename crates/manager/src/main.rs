@@ -125,7 +125,7 @@ async fn main() {
     wait_until(starts_at).await;
 
     let mut previous_day = -1;
-    let last_day = day_steps.len() as i32;
+    let last_day = day_steps.len().saturating_sub(1) as i32;
     loop {
         let day = loop {
             match api.get_day().await {
@@ -140,8 +140,7 @@ async fn main() {
             }
         };
 
-        let day_index = day.day.saturating_sub(1) as usize;
-        let Some(&steps) = day_steps.get(day_index) else {
+        let Some(&steps) = day_steps.get(day.day as usize) else {
             println_error(format!("Received an invalid day index: {}", day.day));
             return;
         };
@@ -165,7 +164,7 @@ async fn main() {
         let next_day_start = starts_at.saturating_add(
             day_seconds
                 .iter()
-                .take(day_number as usize)
+                .take(day_number as usize + 1)
                 .map(|seconds| *seconds as u64)
                 .sum::<u64>(),
         );

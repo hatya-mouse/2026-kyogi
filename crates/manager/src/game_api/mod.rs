@@ -2,10 +2,12 @@
 
 mod answer;
 mod day_data;
+mod error;
 mod init_data;
 
 pub(super) use answer::{ApiActionPlanAnswer, ApiAgentKindAnswer, PostPlanResponse};
 pub(super) use day_data::{ApiDayData, ApiOtherAgentsData, ApiTrafficData};
+pub(super) use error::ApiError;
 pub(super) use init_data::{ApiInitialData, ApiMap, ApiSpot};
 
 pub(super) struct Api {
@@ -41,14 +43,21 @@ impl Api {
     }
 
     /// Submit the kind of agents to the game server.
-    pub(super) async fn post_agents(&self, agents: &ApiAgentKindAnswer) -> reqwest::Result<()> {
-        self.client
+    pub(super) async fn post_agents(&self, agents: &ApiAgentKindAnswer) -> Result<(), ApiError> {
+        let response = self
+            .client
             .post(self.server_url.clone())
             .header("Procon-Token", self.token.as_str())
             .json(agents)
             .send()
-            .await?
-            .error_for_status()?;
+            .await
+            .map_err(ApiError::Transport)?;
+
+        let status = response.status();
+        let body = response.text().await.map_err(ApiError::Transport)?;
+        if !status.is_success() {
+            return Err(ApiError::Http { status, body });
+        }
 
         Ok(())
     }
