@@ -6,7 +6,7 @@ mod route;
 mod utils;
 
 use crate::{
-    algorithm::{cost_map::CostMap, graph::AdjGraph},
+    algorithm::{cost_map::CostMap, graph::AdjGraph, utils::get_action_steps},
     game::{CellId, DayData, DayPlan, Map, Spot},
 };
 use std::collections::HashMap;
@@ -88,7 +88,13 @@ impl<'a> Solver<'a> {
                 let Some(actions) = self.route_to_actions(&route) else {
                     break;
                 };
+
+                let action_step_count: u32 = actions
+                    .iter()
+                    .map(|action| get_action_steps(self.map, day, cursor, action))
+                    .sum();
                 state.plan.extend_actions(agent_id, actions);
+                cursor.fixed_steps += action_step_count;
                 cursor.pos = spot;
             }
         }

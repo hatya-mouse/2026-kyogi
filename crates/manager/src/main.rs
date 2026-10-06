@@ -135,7 +135,7 @@ async fn main() {
                 }
                 Err(err) => {
                     println_error(format!("Error getting the day data:\n{}", err));
-                    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                    tokio::time::sleep(std::time::Duration::from_millis(2000)).await;
                 }
             }
         };

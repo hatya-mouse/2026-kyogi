@@ -29,24 +29,30 @@ impl Api {
     }
 
     /// Gets the setting from the game server.
-    pub(super) async fn get_initial(&self) -> reqwest::Result<ApiInitialData> {
+    pub(super) async fn get_initial(&self) -> Result<ApiInitialData, ApiError> {
         let url = format!("{}/setting", self.server_url.trim_end_matches('/'));
 
-        self.client
+        let response = self
+            .client
             .get(url)
             .header("Procon-Token", self.token.as_str())
             .send()
-            .await?
-            .error_for_status()?
+            .await
+            .map_err(ApiError::Transport)?
             .json::<ApiInitialData>()
             .await
+            .map_err(ApiError::Transport)?;
+
+        Ok(response)
     }
 
     /// Submit the kind of agents to the game server.
     pub(super) async fn post_agents(&self, agents: &ApiAgentKindAnswer) -> Result<(), ApiError> {
+        let url = format!("{}/agent", self.server_url.trim_end_matches('/'));
+
         let response = self
             .client
-            .post(self.server_url.clone())
+            .post(url)
             .header("Procon-Token", self.token.as_str())
             .json(agents)
             .send()
