@@ -1,12 +1,5 @@
 {
-    "workers": {
-        "12": {
-            "address": "192.168.1.2",
-            "port": 8080
-        },
-        "255": {
-            "address": "192.168.255.255",
-            "port": 5050
-        }
-    }
+    "port": 8080,
+    "game_server_url": "https://procon37arena.online",
+    "game_token_env": "HEX_UDON_TOKEN"
 }

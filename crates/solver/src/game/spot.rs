@@ -2,6 +2,12 @@
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Brand(i64);
 
+impl Brand {
+    pub fn new(id: i64) -> Self {
+        Self(id)
+    }
+}
+
 /// Spot that offers some Udons.
 pub struct Spot {
     /// The brand of the spot.

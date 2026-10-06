@@ -1,5 +1,6 @@
 use serde::Deserialize;
-use solver::game::{Agent, CellId, TrafficStatus};
+use solver::game::{Agent, CellId, DayData, TrafficStatus};
+use std::collections::HashMap;
 
 /// The data for the day that can be deserialized from the JSON data provided by the game server.
 #[derive(Deserialize, Debug)]
@@ -15,6 +16,23 @@ pub(crate) struct ApiDayData {
     pub others: Vec<ApiOtherAgentsData>,
     /// Current traffic status of the roads on the map.
     pub traffics: Vec<ApiTrafficData>,
+}
+
+impl ApiDayData {
+    pub(crate) fn to_solver_day_data(self, steps: u32) -> DayData {
+        let traffics = self
+            .traffics
+            .into_iter()
+            .map(|traffic| (traffic.pos, traffic.status))
+            .collect::<HashMap<CellId, TrafficStatus>>();
+
+        DayData {
+            day: self.day,
+            steps,
+            agents: self.agents,
+            traffics,
+        }
+    }
 }
 
 #[derive(Deserialize, Debug)]

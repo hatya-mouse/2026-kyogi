@@ -5,18 +5,22 @@ mod game_api;
 use crate::{
     cli::Cli,
     config::load_config,
-    game_api::{Api, ApiAgentKindAnswer},
+    game_api::{Api, ApiActionPlanAnswer, ApiAgentKindAnswer},
 };
 use clap::Parser;
 use owo_colors::OwoColorize;
 use solver::{
-    game::AgentKind,
+    algorithm::Solver,
+    game::{AgentKind, Brand, Map, Spot},
     tui::{println_error, println_info},
 };
-use std::thread;
 
 #[tokio::main]
 async fn main() {
+    // Load environment variable
+    dotenvy::dotenv().ok();
+
+    // Parse the arguments
     let cli = Cli::parse();
 
     let Some(config) = load_config(&cli) else {
@@ -80,8 +84,12 @@ async fn main() {
                 println_error(format!("Error getting the setting data:\n{}", err));
             }
         }
-        println_info(format!("{}", "Retrying...".yellow()));
-        thread::sleep(std::time::Duration::from_millis(1000));
+        println_info(format!(
+            "{} in {} seconds",
+            "Retrying".yellow(),
+            "5".green().bold()
+        ));
+        tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
     };
 
     if let Err(err) = api
@@ -93,5 +101,54 @@ async fn main() {
     {
         println_error(format!("Error submitting the agent kind:\n{}", err));
         return;
+    }
+
+    let map = Map::new(
+        (
+            initial_data.map.width as usize,
+            initial_data.map.height as usize,
+        ),
+        initial_data.map.cells.into_iter().flatten().collect(),
+    );
+    let spots = initial_data
+        .spots
+        .into_iter()
+        .map(|spot| {
+            (
+                spot.pos,
+                Spot::new(Brand::new(spot.brand as i64), spot.stocks),
+            )
+        })
+        .collect();
+    let solver = Solver::new(&map, spots);
+    let day_steps = initial_data.day_steps;
+
+    loop {
+        let day = loop {
+            match api.get_day().await {
+                Ok(day) => break day,
+                Err(err) => {
+                    println_error(format!("Error getting the day data:\n{}", err));
+                    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                }
+            }
+        };
+
+        let Some(&steps) = day_steps.get(day.day.saturating_sub(1) as usize) else {
+            println_error(format!("Received an invalid day index: {}", day.day));
+            return;
+        };
+        let day_data = day.to_solver_day_data(steps);
+        let plan = solver.solve_day(&day_data);
+
+        if let Err(err) = api.post_plan(&ApiActionPlanAnswer(plan.actions)).await {
+            println_error(format!("Error submitting the action plan:\n{}", err));
+            return;
+        }
+
+        println_info(format!("Submitted the plan for day {}.", day_data.day));
+        if day_data.day as usize >= day_steps.len() {
+            break;
+        }
     }
 }

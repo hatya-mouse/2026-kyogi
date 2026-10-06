@@ -14,6 +14,7 @@ pub(crate) struct ManagerConfig {
     /// The name of the environment variable where the token is stored.
     pub game_token_env: String,
     /// IDs and data of the workers.
+    #[serde(default)]
     pub workers: HashMap<WorkerId, WorkerInfo>,
 }
 
