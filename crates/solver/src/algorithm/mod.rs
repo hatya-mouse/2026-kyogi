@@ -1,3 +1,4 @@
+mod cost_map;
 mod fill_remaining;
 mod graph;
 mod route;
@@ -5,7 +6,7 @@ mod selection;
 mod utils;
 
 use crate::{
-    algorithm::graph::AdjGraph,
+    algorithm::{cost_map::CostMap, graph::AdjGraph},
     game::{AgentKind, Brand, CellId, DayData, DayPlan, Map, Spot},
 };
 use std::collections::{HashMap, HashSet};
@@ -79,7 +80,9 @@ impl<'a> Solver<'a> {
 
     /// Create a solve result for the day.
     pub fn solve_day(&self, day: &DayData) -> DayPlan {
+        // Create a planning state and cost map
         let mut state = PlanningState::from_day(day);
+        let cost_map = CostMap::build(self.map, day);
 
         for agent_id in 0..day.agents.len() {
             // For now skip supply agents

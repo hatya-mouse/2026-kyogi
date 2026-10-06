@@ -1,6 +1,6 @@
 use crate::{
-    algorithm::Solver,
-    game::{Action, CellId, DayData},
+    algorithm::{CostMap, Solver},
+    game::{Action, CellId},
 };
 use std::{
     cmp::Reverse,
@@ -9,14 +9,14 @@ use std::{
 
 impl Solver<'_> {
     /// Converts a route represented by cells into movement actions.
-    pub(crate) fn route_to_actions(&self, route: &[CellId]) -> Option<Vec<Action>> {
+    pub(super) fn route_to_actions(&self, route: &[CellId]) -> Option<Vec<Action>> {
         route
             .windows(2)
             .map(|pair| self.map.direction_to(pair[0], pair[1]).map(Action::Move))
             .collect()
     }
 
-    pub(crate) fn get_route(&self, day: &DayData, src: CellId, dst: CellId) -> Vec<CellId> {
+    pub(super) fn get_route(&self, cost_map: &CostMap, src: CellId, dst: CellId) -> Vec<CellId> {
         // Initialize a step array with zeros
         let mut steps = vec![u32::MAX; self.map.cell_count()];
         let mut closed = HashSet::new();
@@ -40,7 +40,9 @@ impl Solver<'_> {
                     break;
                 }
 
-                let move_cost = self.get_cell_steps(day, &current);
+                let Some(move_cost) = cost_map.steps(&current) else {
+                    continue;
+                };
 
                 // Get the neighbors of the current cell
                 let Some(neighbors) = self.adj_graph.neighbors(&current) else {
@@ -49,7 +51,7 @@ impl Solver<'_> {
 
                 for neighbor in neighbors {
                     // If the neighbor has already been visited, skip it
-                    if closed.contains(&neighbor) {
+                    if closed.contains(neighbor) {
                         continue;
                     }
 

@@ -1,5 +1,5 @@
 /// An identifier used to distinguish brands of spots.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Brand(i64);
 
 /// Spot that offers some Udons.

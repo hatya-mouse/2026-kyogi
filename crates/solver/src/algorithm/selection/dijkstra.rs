@@ -1,12 +1,13 @@
 use crate::{
-    algorithm::Solver,
-    game::{CellId, DayData},
+    algorithm::{CostMap, Solver},
+    game::CellId,
 };
 use std::{cmp::Reverse, collections::BinaryHeap};
 
 impl Solver<'_> {
-    /// Calculates the number of steps to all cells from the given cell.
-    fn dijkstra(&self, day: &DayData, src: &CellId) -> Vec<u32> {
+    /// Calculates the number of steps it takes to move to **reach the given `src` cell**.
+    /// This DOES NOT calculate the number of steps it takes to move to each cells from the src cell.
+    pub(super) fn dijkstra_backward(&self, cost_map: &CostMap, src: &CellId) -> Vec<u32> {
         // Create a priority queue that stores (distance, cell)
         let mut steps = vec![u32::MAX; self.map.cell_count()];
         let mut pq = BinaryHeap::new();
@@ -23,16 +24,18 @@ impl Solver<'_> {
                     continue;
                 }
 
-                // Get the number of steps at the current cell
-                let move_cost = self.get_cell_steps(day, current);
-
                 // Loop neighbors and update the number of steps to the adjacent spots
                 let Some(neighbors) = self.adj_graph.neighbors(current) else {
                     continue;
                 };
                 for neighbor in neighbors {
                     let neighbor_idx = neighbor.as_usize();
-                    let new_cost = steps[neighbor_idx].saturating_add(move_cost);
+
+                    // Get the number of steps to move TO current cell FROM the neighbor cell
+                    let Some(move_cost) = cost_map.steps(neighbor) else {
+                        continue;
+                    };
+                    let new_cost = current_steps.saturating_add(move_cost);
 
                     let Some(old_cost) = steps.get(neighbor_idx) else {
                         continue;
