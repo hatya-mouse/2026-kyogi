@@ -42,15 +42,20 @@ async fn main() {
             "Game Token Env".green().bold(),
             config.game_token_env
         );
-        println!("Workers:");
-        for (id, worker) in config.workers {
-            println!(
-                "- {} {:3}: {}:{}",
-                "Worker".green().bold(),
-                id.0.bold(),
-                worker.address,
-                worker.port
-            );
+
+        if config.workers.is_empty() {
+            println!("No workers");
+        } else {
+            println!("Workers:");
+            for (id, worker) in config.workers {
+                println!(
+                    "- {} {:3}: {}:{}",
+                    "Worker".green().bold(),
+                    id.0.bold(),
+                    worker.address,
+                    worker.port
+                );
+            }
         }
     }
 
