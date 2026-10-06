@@ -1,5 +1,5 @@
 use serde::Serialize;
-use shared::game::{Action, AgentKind};
+use solver::game::{Action, AgentKind};
 
 /// A struct for answering agent kind that can be serialized into a compatible JSON.
 #[derive(Serialize, Debug)]

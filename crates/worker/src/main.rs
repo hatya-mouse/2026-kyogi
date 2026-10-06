@@ -1,7 +1,7 @@
 use crate::{cli::Cli, config::WorkerConfig};
 use clap::Parser;
 use owo_colors::OwoColorize;
-use shared::tui::{println_error, println_info};
+use solver::tui::{println_error, println_info};
 use std::path::{Path, PathBuf};
 
 mod cli;

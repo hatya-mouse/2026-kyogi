@@ -17,18 +17,30 @@ pub enum CellType {
 // --- TrafficStatus ---
 
 /// The traffic status of the road tile.
-#[derive(Deserialize_repr, PartialEq, Debug)]
+#[derive(Deserialize_repr, PartialEq, Debug, Default)]
 #[repr(u8)]
 pub enum TrafficStatus {
+    #[default]
     Smooth = 0,
     Busy = 1,
     Jammed = 2,
 }
 
+impl TrafficStatus {
+    /// Returns the number of steps it takes to pass this road cell.
+    pub fn steps(&self) -> u32 {
+        match self {
+            TrafficStatus::Smooth => 1,
+            TrafficStatus::Busy => 2,
+            TrafficStatus::Jammed => 4,
+        }
+    }
+}
+
 // --- CellId ---
 
 /// An ID that represents the position on the map.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Hash, Clone, Copy, PartialEq, Eq)]
 pub struct CellId(pub usize);
 
 impl Debug for CellId {
@@ -51,5 +63,10 @@ impl CellId {
     #[inline]
     pub fn to_coord(self, width: usize) -> (usize, usize) {
         (self.0 % width, self.0 / width)
+    }
+
+    #[inline]
+    pub fn from_coord(coord: (usize, usize), width: usize) -> Self {
+        Self(coord.1 * width + coord.0)
     }
 }

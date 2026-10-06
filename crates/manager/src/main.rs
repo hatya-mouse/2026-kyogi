@@ -5,7 +5,7 @@ mod game_api;
 use crate::{cli::Cli, config::load_config, game_api::Api};
 use clap::Parser;
 use owo_colors::OwoColorize;
-use shared::tui::{println_error, println_info};
+use solver::tui::{println_error, println_info};
 use std::thread;
 
 #[tokio::main]

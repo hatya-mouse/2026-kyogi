@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use shared::{file::read_from_relative_path, net::WorkerId, tui::println_error};
+use solver::{file::read_from_relative_path, net::WorkerId, tui::println_error};
 use std::{collections::HashMap, net::Ipv4Addr, path::PathBuf};
 
 use crate::Cli;

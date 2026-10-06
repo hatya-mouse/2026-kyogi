@@ -1,16 +1,16 @@
 use serde::Deserialize;
-use shared::game::{CellId, CellType};
+use solver::game::{CellId, CellType};
 
 /// Initial data that can be deserialized from the JSON data given by the game server.
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ApiInitialData {
     /// UNIX time when the game starts.
-    pub starts_at: i64,
+    pub starts_at: u64,
     /// Response time limit for each day.
-    pub day_seconds: Vec<i64>,
+    pub day_seconds: Vec<u32>,
     /// Number of steps for each day.
-    pub day_steps: Vec<i64>,
+    pub day_steps: Vec<u32>,
     /// The map.
     pub map: ApiMap,
     /// The spots on the map.
@@ -18,13 +18,13 @@ pub(crate) struct ApiInitialData {
     /// Initial position of the agents.
     pub agents: Vec<CellId>,
     /// The maximum amount of fuel.
-    pub fuel_limits: i64,
+    pub fuel_limits: u32,
     /// Number of players.
-    pub players: i64,
+    pub players: u32,
     /// A threshold where the road turns to "busy" state.
-    pub busy_threshold: i64,
+    pub busy_threshold: u32,
     /// A threshold where the road turns to "jammed" state.
-    pub jammed_threshold: i64,
+    pub jammed_threshold: u32,
 }
 
 /// Map data that can be deserialized from the JSON data given by the game server.

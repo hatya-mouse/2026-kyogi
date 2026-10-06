@@ -5,7 +5,7 @@ mod day_data;
 mod init_data;
 
 pub(super) use answer::{ApiActionPlanAnswer, ApiAgentKindAnswer, PostPlanResponse};
-pub(super) use day_data::{ApiAgentData, ApiDayData, ApiOtherAgentsData, ApiTrafficData};
+pub(super) use day_data::{ApiDayData, ApiOtherAgentsData, ApiTrafficData};
 pub(super) use init_data::{ApiInitialData, ApiMap, ApiSpot};
 
 pub(super) struct Api {
