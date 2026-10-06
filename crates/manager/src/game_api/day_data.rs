@@ -9,7 +9,7 @@ pub(crate) struct ApiDayData {
     /// UNIX time when the day will end.
     pub ends_at: u64,
     /// The current index of the day.
-    pub day: u32,
+    pub day: i32,
     /// States of the agents at the start of the day.
     pub agents: Vec<Agent>,
     /// States of the opponents' agents at the start of the day.

@@ -14,6 +14,7 @@ use solver::{
     game::{AgentKind, Brand, Map, Spot},
     tui::{println_error, println_info},
 };
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 #[tokio::main]
 async fn main() {
@@ -92,17 +93,15 @@ async fn main() {
         tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
     };
 
-    if let Err(err) = api
-        .post_agents(&ApiAgentKindAnswer(vec![
-            AgentKind::Patrol;
-            initial_data.agents.len()
-        ]))
-        .await
-    {
+    let agents_answer = ApiAgentKindAnswer(vec![AgentKind::Patrol; initial_data.agents.len()]);
+    if let Err(err) = api.post_agents(&agents_answer).await {
         println_error(format!("Error submitting the agent kind:\n{}", err));
         return;
     }
+    println_info(format!("Submitted the agent kind:\n{:?}", agents_answer));
 
+    let starts_at = initial_data.starts_at;
+    let day_seconds = initial_data.day_seconds;
     let map = Map::new(
         (
             initial_data.map.width as usize,
@@ -123,10 +122,17 @@ async fn main() {
     let solver = Solver::new(&map, spots);
     let day_steps = initial_data.day_steps;
 
+    wait_until(starts_at).await;
+
+    let mut previous_day = -1;
+    let last_day = day_steps.len() as i32;
     loop {
         let day = loop {
             match api.get_day().await {
-                Ok(day) => break day,
+                Ok(day) if day.day > previous_day => break day,
+                Ok(_) => {
+                    tokio::time::sleep(Duration::from_millis(200)).await;
+                }
                 Err(err) => {
                     println_error(format!("Error getting the day data:\n{}", err));
                     tokio::time::sleep(std::time::Duration::from_millis(500)).await;
@@ -134,21 +140,53 @@ async fn main() {
             }
         };
 
-        let Some(&steps) = day_steps.get(day.day.saturating_sub(1) as usize) else {
+        let day_index = day.day.saturating_sub(1) as usize;
+        let Some(&steps) = day_steps.get(day_index) else {
             println_error(format!("Received an invalid day index: {}", day.day));
             return;
         };
+        let day_ends_at = day.ends_at;
+        let day_number = day.day;
+        previous_day = day_number;
         let day_data = day.to_solver_day_data(steps);
         let plan = solver.solve_day(&day_data);
 
         if let Err(err) = api.post_plan(&ApiActionPlanAnswer(plan.actions)).await {
             println_error(format!("Error submitting the action plan:\n{}", err));
-            return;
+            continue;
         }
 
         println_info(format!("Submitted the plan for day {}.", day_data.day));
-        if day_data.day as usize >= day_steps.len() {
+        if day_data.day >= last_day {
+            println_info("Match finished.");
             break;
         }
+
+        let next_day_start = starts_at.saturating_add(
+            day_seconds
+                .iter()
+                .take(day_number as usize)
+                .map(|seconds| *seconds as u64)
+                .sum::<u64>(),
+        );
+        wait_until(next_day_start.max(day_ends_at)).await;
+    }
+}
+
+async fn wait_until(timestamp: u64) {
+    loop {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+
+        let Some(remaining) = timestamp.checked_sub(now) else {
+            return;
+        };
+        if remaining == 0 {
+            return;
+        }
+
+        tokio::time::sleep(Duration::from_secs(remaining.min(1))).await;
     }
 }

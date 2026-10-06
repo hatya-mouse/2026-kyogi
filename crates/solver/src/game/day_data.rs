@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 pub struct DayData {
     /// The current index of the day.
-    pub day: u32,
+    pub day: i32,
     /// Number of steps in the day.
     pub steps: u32,
     /// States of the agents at the start of the day.

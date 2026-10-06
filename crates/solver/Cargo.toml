@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+chrono = "0.4.45"
 owo-colors = "4.4.0"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_repr = "0.1.21"
