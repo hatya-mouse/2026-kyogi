@@ -1,0 +1,82 @@
+{
+  "startsAt": 0,
+  "daySeconds": [
+    5
+  ],
+  "daySteps": [
+    15
+  ],
+  "map": {
+    "width": 6,
+    "height": 4,
+    "cells": [
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    ]
+  },
+  "spots": [
+    {
+      "pos": 16,
+      "brand": 0,
+      "stocks": 1
+    },
+    {
+      "pos": 6,
+      "brand": 1,
+      "stocks": 1
+    },
+    {
+      "pos": 20,
+      "brand": 2,
+      "stocks": 1
+    },
+    {
+      "pos": 7,
+      "brand": 0,
+      "stocks": 1
+    },
+    {
+      "pos": 15,
+      "brand": 1,
+      "stocks": 1
+    }
+  ],
+  "agents": [
+    12,
+    22
+  ],
+  "fuelLimits": 2,
+  "players": 1,
+  "busyThreshold": 2,
+  "jammedThreshold": 4
+}

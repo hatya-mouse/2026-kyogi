@@ -1,0 +1,12 @@
+{
+  "agents": 7,
+  "brands": 28,
+  "days": 4,
+  "generatorVersion": 1,
+  "height": 32,
+  "players": 1,
+  "seed": 2026092203,
+  "spots": 32,
+  "supplies": 1,
+  "width": 32
+}

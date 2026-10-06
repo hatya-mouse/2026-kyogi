@@ -1,0 +1,7 @@
+{
+  "day": 0,
+  "endsAt": 0,
+  "agents": [{"kind": 0, "pos": 0, "fuel": 8}, {"kind": 0, "pos": 4, "fuel": 8}, {"kind": 1, "pos": 6, "fuel": 0}],
+  "others": [],
+  "traffics": [{"pos": 1, "status": 0}]
+}

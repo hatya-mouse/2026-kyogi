@@ -1,0 +1,98 @@
+{
+  "official_source": "docs/competition/finals-conditions.md",
+  "cases": [
+    {
+      "round": "first",
+      "seed": 2026092201,
+      "traffic_seed": 2026092301,
+      "profile": {
+        "size": 16,
+        "agents": 4,
+        "spots": 16,
+        "brands_min": 10,
+        "brands_max": 14,
+        "type_seconds": 60
+      },
+      "experimental_parameters": {
+        "days": 4,
+        "steps": 64,
+        "fuel": 128,
+        "stock": 2,
+        "thresholds": [
+          2,
+          4
+        ],
+        "players": 1,
+        "traffic_change_probability": 0.3
+      },
+      "sha256": {
+        "map.json": "69ba11777ff080575334f8dbd5946202869c2db7f57416297aff43a914733b47",
+        "status.json": "02632b7acfb1bfb738a20c26608937346b847f3c4c0defb27f6d7a5f845eefcb",
+        "traffic.json": "3396264c00fb737927f9b4faeecebb744f2ba453badbfb5fc860449e5da624f1",
+        "generation.json": "7133fe73b511d560ae2f8375a6b9d982cb2cf3c03609d25a5350377b932fb6b6"
+      }
+    },
+    {
+      "round": "semifinal",
+      "seed": 2026092202,
+      "traffic_seed": 2026092302,
+      "profile": {
+        "size": 24,
+        "agents": 5,
+        "spots": 24,
+        "brands_min": 14,
+        "brands_max": 20,
+        "type_seconds": 90
+      },
+      "experimental_parameters": {
+        "days": 4,
+        "steps": 96,
+        "fuel": 192,
+        "stock": 3,
+        "thresholds": [
+          2,
+          4
+        ],
+        "players": 1,
+        "traffic_change_probability": 0.3
+      },
+      "sha256": {
+        "map.json": "9682125b24772f8a94ef8ed93cd5a06fe5dc81350edef49a0b6e08c8f33b3a54",
+        "status.json": "f471bae00cae7b5e7bfd394b692eb4d22faa575920b86c1e2b183d2841776d21",
+        "traffic.json": "23039431a36cc365c623a6d976335083b67c73218127cdbf8225b287da86f212",
+        "generation.json": "2f8554861c63835984315a13d0f73f64df0ff8e101823572f0353f6244c6fe1c"
+      }
+    },
+    {
+      "round": "final",
+      "seed": 2026092203,
+      "traffic_seed": 2026092303,
+      "profile": {
+        "size": 32,
+        "agents": 7,
+        "spots": 32,
+        "brands_min": 20,
+        "brands_max": 28,
+        "type_seconds": 120
+      },
+      "experimental_parameters": {
+        "days": 4,
+        "steps": 128,
+        "fuel": 256,
+        "stock": 4,
+        "thresholds": [
+          2,
+          4
+        ],
+        "players": 1,
+        "traffic_change_probability": 0.3
+      },
+      "sha256": {
+        "map.json": "cb58b9fa2912fe84d96a50308fb23a683b54c1d5bec1af960cf8e9ca72da2b50",
+        "status.json": "eb53b3fc7b85a3c2bb755762e34b59a0107793c33bde10d5a94680c34320566f",
+        "traffic.json": "be2de5ecbe4c563f8f4dcba51fe44a29fc15a5c78578ef3bfde6b0e1bc2e8bdb",
+        "generation.json": "8a8c107cab3e3a41040c079fa98eacb1714e7bb2349bbc40ff909670ff17ab70"
+      }
+    }
+  ]
+}

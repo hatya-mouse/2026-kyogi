@@ -1,0 +1,205 @@
+{
+  "agents": [
+    {
+      "fuel": 128,
+      "kind": 0,
+      "pos": 131
+    },
+    {
+      "fuel": 128,
+      "kind": 0,
+      "pos": 180
+    },
+    {
+      "fuel": 128,
+      "kind": 0,
+      "pos": 223
+    },
+    {
+      "fuel": 128,
+      "kind": 1,
+      "pos": 87
+    }
+  ],
+  "day": 0,
+  "endsAt": 10,
+  "others": [],
+  "traffics": [
+    {
+      "pos": 6,
+      "status": 0
+    },
+    {
+      "pos": 8,
+      "status": 0
+    },
+    {
+      "pos": 10,
+      "status": 0
+    },
+    {
+      "pos": 17,
+      "status": 0
+    },
+    {
+      "pos": 21,
+      "status": 0
+    },
+    {
+      "pos": 25,
+      "status": 0
+    },
+    {
+      "pos": 27,
+      "status": 0
+    },
+    {
+      "pos": 28,
+      "status": 0
+    },
+    {
+      "pos": 32,
+      "status": 0
+    },
+    {
+      "pos": 45,
+      "status": 0
+    },
+    {
+      "pos": 47,
+      "status": 0
+    },
+    {
+      "pos": 49,
+      "status": 0
+    },
+    {
+      "pos": 54,
+      "status": 0
+    },
+    {
+      "pos": 65,
+      "status": 0
+    },
+    {
+      "pos": 67,
+      "status": 0
+    },
+    {
+      "pos": 72,
+      "status": 0
+    },
+    {
+      "pos": 88,
+      "status": 0
+    },
+    {
+      "pos": 89,
+      "status": 0
+    },
+    {
+      "pos": 90,
+      "status": 0
+    },
+    {
+      "pos": 93,
+      "status": 0
+    },
+    {
+      "pos": 106,
+      "status": 0
+    },
+    {
+      "pos": 107,
+      "status": 0
+    },
+    {
+      "pos": 111,
+      "status": 0
+    },
+    {
+      "pos": 122,
+      "status": 0
+    },
+    {
+      "pos": 137,
+      "status": 0
+    },
+    {
+      "pos": 140,
+      "status": 0
+    },
+    {
+      "pos": 144,
+      "status": 0
+    },
+    {
+      "pos": 147,
+      "status": 0
+    },
+    {
+      "pos": 159,
+      "status": 0
+    },
+    {
+      "pos": 161,
+      "status": 0
+    },
+    {
+      "pos": 169,
+      "status": 0
+    },
+    {
+      "pos": 177,
+      "status": 0
+    },
+    {
+      "pos": 182,
+      "status": 0
+    },
+    {
+      "pos": 185,
+      "status": 0
+    },
+    {
+      "pos": 190,
+      "status": 0
+    },
+    {
+      "pos": 194,
+      "status": 0
+    },
+    {
+      "pos": 200,
+      "status": 0
+    },
+    {
+      "pos": 205,
+      "status": 0
+    },
+    {
+      "pos": 209,
+      "status": 0
+    },
+    {
+      "pos": 212,
+      "status": 0
+    },
+    {
+      "pos": 213,
+      "status": 0
+    },
+    {
+      "pos": 225,
+      "status": 0
+    },
+    {
+      "pos": 234,
+      "status": 0
+    },
+    {
+      "pos": 255,
+      "status": 0
+    }
+  ]
+}

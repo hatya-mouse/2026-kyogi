@@ -1,0 +1,18 @@
+{
+  "day": 0,
+  "endsAt": 0,
+  "agents": [
+    {
+      "kind": 0,
+      "pos": 12,
+      "fuel": 2
+    },
+    {
+      "kind": 1,
+      "pos": 22,
+      "fuel": 0
+    }
+  ],
+  "others": [],
+  "traffics": []
+}

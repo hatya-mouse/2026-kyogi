@@ -1,0 +1,12 @@
+{
+  "startsAt": 0,
+  "daySeconds": [5, 5, 5],
+  "daySteps": [8, 8, 8],
+  "map": {"width": 4, "height": 2, "cells": [[0, 1, 0, 0], [0, 2, 0, 0]]},
+  "spots": [{"pos": 2, "brand": 10, "stocks": 1}, {"pos": 3, "brand": 20, "stocks": 2}, {"pos": 7, "brand": 30, "stocks": 1}],
+  "agents": [0, 4, 6],
+  "fuelLimits": 8,
+  "players": 1,
+  "busyThreshold": 2,
+  "jammedThreshold": 4
+}
