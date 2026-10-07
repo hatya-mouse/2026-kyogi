@@ -36,6 +36,11 @@ impl Solver<'_> {
             // Get the distances to spots
             let mut spot_steps = Vec::new();
             for (spot, details) in &self.spots {
+                // Do not assign an agent to the spot it is already occupying
+                if *spot == cursor.pos {
+                    continue;
+                }
+
                 let distance = cell_steps[spot.as_usize()];
 
                 // Exclude unreachable spots
