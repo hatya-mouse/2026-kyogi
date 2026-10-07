@@ -81,10 +81,10 @@ impl<'a> Solver<'a> {
         // Select spots for each agents
         let assignments = self.distribute_agents(day, &state, &cost_map);
 
-        for (agent_id, spot) in assignments {
+        for assignment in assignments {
             // Create a route to the spot
-            if let Some(cursor) = state.cursor.get_mut(agent_id) {
-                let route = self.get_route(&cost_map, cursor.pos, spot);
+            if let Some(cursor) = state.cursor.get_mut(assignment.agent_id) {
+                let route = self.get_route(&cost_map, cursor.pos, assignment.spot);
                 let Some(actions) = self.route_to_actions(&route) else {
                     break;
                 };
@@ -93,9 +93,9 @@ impl<'a> Solver<'a> {
                     .iter()
                     .map(|action| get_action_steps(self.map, day, cursor, action))
                     .sum();
-                state.plan.extend_actions(agent_id, actions);
+                state.plan.extend_actions(assignment.agent_id, actions);
                 cursor.fixed_steps += action_step_count;
-                cursor.pos = spot;
+                cursor.pos = assignment.spot;
             }
         }
 

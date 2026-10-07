@@ -20,4 +20,12 @@ impl Spot {
     pub fn new(brand: Brand, stocks: u32) -> Self {
         Self { brand, stocks }
     }
+
+    pub(crate) fn brand(&self) -> &Brand {
+        &self.brand
+    }
+
+    pub(crate) fn stocks(&self) -> u32 {
+        self.stocks
+    }
 }

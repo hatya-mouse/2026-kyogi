@@ -1,4 +1,4 @@
-//! Distribute the agents to spots by selecting the best combination of agents and spots.
+//! Distribute agents using a simple greedy ranking of reachable spots.
 
 mod assignment;
 mod dijkstra;
@@ -7,6 +7,13 @@ use crate::{
     algorithm::{CostMap, PlanningState, Solver},
     game::{AgentKind, CellId, DayData},
 };
+use assignment::{AgentCandidates, SpotCandidate};
+
+#[derive(Debug, Clone)]
+pub(super) struct Assignment {
+    pub(super) agent_id: usize,
+    pub(super) spot: CellId,
+}
 
 impl Solver<'_> {
     pub(super) fn distribute_agents(
@@ -14,9 +21,8 @@ impl Solver<'_> {
         day: &DayData,
         state: &PlanningState,
         cost_map: &CostMap,
-    ) -> Vec<(usize, CellId)> {
-        // Store the steps to each agents from each spots
-        let mut agents_to_spots: Vec<(usize, Vec<(CellId, u32)>)> = Vec::new();
+    ) -> Vec<Assignment> {
+        let mut agents_to_spots = Vec::new();
 
         // Calculate the steps to the spots using Dijkstra's algorithm
         for (agent_id, (agent, cursor)) in day.agents.iter().zip(state.cursor.iter()).enumerate() {
@@ -29,7 +35,7 @@ impl Solver<'_> {
 
             // Get the distances to spots
             let mut spot_steps = Vec::new();
-            for spot in self.spots.keys() {
+            for (spot, details) in &self.spots {
                 let distance = cell_steps[spot.as_usize()];
 
                 // Exclude unreachable spots
@@ -43,16 +49,23 @@ impl Solver<'_> {
                     continue;
                 }
 
-                spot_steps.push((*spot, distance));
+                spot_steps.push(SpotCandidate {
+                    spot_id: *spot,
+                    brand: details.brand().clone(),
+                    distance,
+                    stock: details.stocks(),
+                });
             }
 
-            // Sort the spots by distance
-            spot_steps.sort_by_key(|a| a.1);
+            spot_steps.sort_unstable_by_key(|candidate| (candidate.distance, candidate.spot_id));
 
-            agents_to_spots.push((agent_id, spot_steps));
+            agents_to_spots.push(AgentCandidates {
+                agent_id,
+                spots: spot_steps,
+            });
         }
 
-        // Search the best combination of agents and spots
+        // Greedily assign the highest-ranked available candidate.
         self.search(&agents_to_spots)
     }
 }
