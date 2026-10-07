@@ -134,7 +134,10 @@ impl PlanningState {
                 steps
             })
             .sum();
-        if cursor.fixed_steps.saturating_add(action_steps) > day.steps || fuel_used > cursor.fuel {
+        if cursor.fixed_steps.saturating_add(action_steps) > day.steps
+            || fuel_used > cursor.fuel
+            || next_cursor.pos != destination
+        {
             return false;
         }
 
