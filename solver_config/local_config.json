@@ -1,0 +1,5 @@
+{
+    "port": 8080,
+    "game_server_url": "http://127.0.0.1:8080",
+    "game_token_env": "LOCAL_SERVER_TOKEN"
+}

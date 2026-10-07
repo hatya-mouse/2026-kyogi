@@ -87,7 +87,7 @@ async fn main() {
         match api.get_initial().await {
             Ok(data) => break data,
             Err(err) => {
-                println_error(format!("Error getting the setting data:\n{}", err));
+                println_error(format!("Error getting the initial setting data:\n{}", err));
             }
         }
         println_info(format!(
@@ -97,6 +97,10 @@ async fn main() {
         ));
         tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
     };
+
+    if cli.verbose {
+        println_info(format!("Initial setting data:\n{:#?}", initial_data));
+    }
 
     let agents_answer = ApiAgentKindAnswer(vec![AgentKind::Patrol; initial_data.agents.len()]);
     if let Err(err) = api.post_agents(&agents_answer).await {
@@ -149,10 +153,23 @@ async fn main() {
             println_error(format!("Received an invalid day index: {}", day.day));
             return;
         };
+
+        println_info("================================");
+        println_info(format!(
+            "{} {} {}",
+            "Day".green(),
+            day.day.bold(),
+            "has started".green()
+        ));
+
+        if cli.verbose {
+            println_info(format!("Day data for day {}:\n{:#?}", day.day, day));
+        }
+
         let day_ends_at = day.ends_at;
         let day_number = day.day;
         previous_day = day_number;
-        let day_data = day.to_solver_day_data(steps);
+        let day_data = day.as_solver_day_data(steps);
         let plan = solver.solve_day(&day_data);
 
         if cli.verbose {

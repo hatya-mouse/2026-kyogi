@@ -12,6 +12,7 @@ struct SpotCandidate {
     pub(super) agent_id: usize,
     pub(super) spot_id: CellId,
     pub(super) steps: u32,
+    pub(super) slack: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -81,19 +82,17 @@ impl Solver<'_> {
                     agent_id,
                     spot_id: *spot_id,
                     steps,
+                    slack: day.steps - cursor.fixed_steps - steps,
                 };
                 candidates.push(candidate);
             }
         }
 
-        // Sort by distance
-        candidates.sort_unstable_by_key(|c| c.steps);
-
         // Limit the number of same spots
         limit_candidates_by_stock(state, &mut candidates);
 
-        // Move unvisited brands to the top of the vector
-        prioritize_unvisited(state, &mut candidates);
+        // Prioritize unvisited and hard-to-reach brands
+        prioritize_candidates(state, &mut candidates);
 
         // Take top candidates and return them
         take_top_candidates(candidates, self.board.agent_count)
@@ -130,29 +129,20 @@ fn limit_candidates_by_stock(state: &PlanningState, candidates: &mut Vec<SpotCan
     }
 }
 
-/// Moves unvisited brands to the top of the vector, prioritizing them.
-fn prioritize_unvisited(state: &PlanningState, candidates: &mut Vec<SpotCandidate>) {
-    // The index of the first non-prioritized candidates
-    let mut normal_start = 0;
-    let mut index = candidates.len() - 1;
-    while let Some(spot_id) = candidates.get(index).map(|c| c.spot_id) {
-        if index < normal_start {
-            break;
-        }
+/// Prioritizes unvisited brands and candidates that are close to becoming unreachable.
+fn prioritize_candidates(state: &PlanningState, candidates: &mut [SpotCandidate]) {
+    const URGENCY_MARGIN: u32 = 5;
 
-        let Some(SpotState { brand, .. }) = state.spots.get(&spot_id) else {
-            break;
+    candidates.sort_unstable_by_key(|candidate| {
+        let Some(spot) = state.spots.get(&candidate.spot_id) else {
+            return (true, true, candidate.steps);
         };
-
-        // Check if the spot is of unvisited brand
-        if state.unvisited_brands.contains(brand) {
-            let prioritized_candidate = candidates.remove(index);
-            candidates.insert(0, prioritized_candidate);
-            normal_start += 1;
-        }
-
-        index -= 1;
-    }
+        (
+            !state.unvisited_brands.contains(&spot.brand),
+            candidate.slack > URGENCY_MARGIN,
+            candidate.steps,
+        )
+    });
 }
 
 /// Take the top candidates for each agent and convert them to assignments.

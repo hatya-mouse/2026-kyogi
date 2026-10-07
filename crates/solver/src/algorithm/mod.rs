@@ -67,15 +67,7 @@ impl<'a> Solver<'a> {
                     continue;
                 }
 
-                // Mark the spot brand as visited today
-                if let Some(spot) = self.board.spots.get(&assignment.spot_id) {
-                    state.unvisited_brands.remove(spot.brand());
-                }
-                // Add the spot to visited spots
-                if let Some(cursor) = state.cursor.get_mut(assignment.agent_id) {
-                    cursor.visited_spots.insert(assignment.spot_id);
-                }
-
+                self.visited_spot(&mut state, assignment.agent_id, assignment.spot_id);
                 added = true;
             }
 
@@ -87,5 +79,22 @@ impl<'a> Solver<'a> {
 
         state.fill_remaining_waits(day);
         state.plan
+    }
+
+    fn visited_spot(&self, state: &mut PlanningState, agent_id: usize, spot_id: CellId) {
+        // Mark the spot brand as visited today
+        if let Some(spot) = self.board.spots.get(&spot_id) {
+            state.unvisited_brands.remove(spot.brand());
+        }
+
+        // Decrement the stock by 1 from the state
+        if let Some(spot_state) = state.spots.get_mut(&spot_id) {
+            spot_state.stocks = spot_state.stocks.saturating_sub(1);
+        }
+
+        // Add the spot to visited spots
+        if let Some(cursor) = state.cursor.get_mut(agent_id) {
+            cursor.visited_spots.insert(spot_id);
+        }
     }
 }

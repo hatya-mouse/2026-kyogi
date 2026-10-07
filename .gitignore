@@ -1,3 +1,5 @@
 debug/
 target/
+test_server/
 .env
+.local/

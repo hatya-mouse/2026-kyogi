@@ -19,7 +19,7 @@ pub(crate) struct ApiDayData {
 }
 
 impl ApiDayData {
-    pub(crate) fn to_solver_day_data(self, steps: u32) -> DayData {
+    pub(crate) fn as_solver_day_data(self, steps: u32) -> DayData {
         let traffics = self
             .traffics
             .into_iter()
