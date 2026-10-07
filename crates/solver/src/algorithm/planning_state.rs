@@ -1,6 +1,6 @@
 use crate::{
     algorithm::utils::{get_action_steps, get_move_fuel},
-    game::{Action, Board, Brand, CellId, DayData, DayPlan, Map, Spot},
+    game::{Action, AgentKind, Board, Brand, CellId, DayData, DayPlan, Map, Spot},
 };
 use std::{
     collections::{HashMap, HashSet},
@@ -9,7 +9,7 @@ use std::{
 
 /// A temporary plan state that is used during planning.
 /// Will be reset every day.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(super) struct PlanningState {
     /// A plan that is now being constructed.
     pub plan: DayPlan,
@@ -19,6 +19,10 @@ pub(super) struct PlanningState {
     pub spots: HashMap<CellId, SpotState>,
     /// Set of brands that has not been visited today.
     pub unvisited_brands: HashSet<Brand>,
+    /// IDs of the agents assigned as supply cars.
+    pub supply_agents: HashSet<usize>,
+    /// Maximum fuel carried by a patrol car.
+    pub fuel_limit: u32,
 }
 
 /// The planned position of the agents, not a server's actual state.
@@ -64,7 +68,7 @@ impl SpotState {
 }
 
 impl PlanningState {
-    pub(super) fn from_day(board: &Board, day: &DayData) -> Self {
+    pub(super) fn from_day(board: &Board, day: &DayData, fuel_limit: u32) -> Self {
         let agent_count = day.agents.len();
 
         Self {
@@ -80,6 +84,15 @@ impl PlanningState {
                 .iter()
                 .map(|(id, spot)| (*id, SpotState::from_spot(spot)))
                 .collect(),
+            supply_agents: day
+                .agents
+                .iter()
+                .enumerate()
+                .filter_map(|(agent_id, agent)| {
+                    (agent.kind == AgentKind::Supply).then_some(agent_id)
+                })
+                .collect(),
+            fuel_limit,
         }
     }
 
@@ -112,7 +125,9 @@ impl PlanningState {
             .map(|action| {
                 let steps = get_action_steps(map, day, &next_cursor, action);
                 if let Action::Move(direction) = action {
-                    fuel_used = fuel_used.saturating_add(get_move_fuel(map, &next_cursor));
+                    if !self.supply_agents.contains(&agent_id) {
+                        fuel_used = fuel_used.saturating_add(get_move_fuel(map, &next_cursor.pos));
+                    }
                     let coord = map.get_coord_from_id(next_cursor.pos);
                     next_cursor.pos = map.get_id_from_coord(direction.apply_to_coord(coord));
                 }

@@ -16,8 +16,8 @@ pub(super) fn get_action_steps(
     }
 }
 
-pub(super) fn get_move_fuel(map: &Map, cursor: &AgentCursor) -> u32 {
-    match map.get_cell(&cursor.pos) {
+pub(super) fn get_move_fuel(map: &Map, id: &CellId) -> u32 {
+    match map.get_cell(id) {
         Some(CellType::Plain) => 1,
         Some(CellType::Mountain | CellType::Road) => 2,
         Some(CellType::Pond) | None => u32::MAX,

@@ -3,13 +3,19 @@ mod distribution;
 mod graph;
 mod planning_state;
 mod route;
+mod supply;
 mod utils;
 
 use crate::{
-    algorithm::{cost_map::CostMap, graph::AdjGraph, planning_state::PlanningState},
-    game::{Board, CellId, DayData, DayPlan, Map, Spot},
+    algorithm::{
+        cost_map::CostMap,
+        graph::AdjGraph,
+        planning_state::{AgentCursor, PlanningState},
+        utils::get_action_steps,
+    },
+    game::{Action, Board, CellId, DayData, DayPlan, Map, Spot},
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 // --- SOVLER ---
 
@@ -19,24 +25,32 @@ pub struct Solver<'a> {
     board: Board<'a>,
     /// Adjacent graph for the map.
     adj_graph: AdjGraph,
+    /// Maximum fuel carried by a patrol car.
+    fuel_limit: u32,
 }
 
 impl<'a> Solver<'a> {
-    pub fn new(map: &'a Map, spots: HashMap<CellId, Spot>, agent_count: usize) -> Self {
+    pub fn new(
+        map: &'a Map,
+        spots: HashMap<CellId, Spot>,
+        agent_count: usize,
+        fuel_limit: u32,
+    ) -> Self {
         let adj_graph = AdjGraph::build(map);
         Self {
             board: Board::new(map, spots, agent_count),
             adj_graph,
+            fuel_limit,
         }
     }
 
     /// Create a solve result for the day.
     pub fn solve_day(&self, day: &DayData) -> DayPlan {
         // Create a planning state and cost map
-        let mut state = PlanningState::from_day(&self.board, day);
+        let mut state = PlanningState::from_day(&self.board, day, self.fuel_limit);
         let cost_map = CostMap::build(self.board.map, day);
 
-        let mut rejected_assignments = std::collections::HashSet::new();
+        let mut rejected_assignments = HashSet::new();
         loop {
             // Select spots for each agents
             let assignments = self.distribute_agents(day, &state, &cost_map, &rejected_assignments);
@@ -47,24 +61,7 @@ impl<'a> Solver<'a> {
 
             let mut added = false;
             for assignment in assignments {
-                let Some(cursor) = state.cursor.get(assignment.agent_id) else {
-                    continue;
-                };
-
-                // Create a route to the spot
-                let route = self.get_route(&cost_map, cursor.pos, assignment.spot_id);
-                let Some(actions) = self.route_to_actions(&route) else {
-                    break;
-                };
-
-                // Add the generated route as an action
-                if !state.try_add_actions(
-                    self.board.map,
-                    day,
-                    assignment.agent_id,
-                    assignment.spot_id,
-                    actions,
-                ) {
+                if !self.try_add_assignment(&mut state, day, &cost_map, &assignment) {
                     rejected_assignments.insert((assignment.agent_id, assignment.spot_id));
                     continue;
                 }
@@ -83,6 +80,28 @@ impl<'a> Solver<'a> {
 
         state.fill_remaining_waits(day);
         state.plan
+    }
+
+    /// Calculates the steps required by an action sequence
+    fn route_steps(
+        &self,
+        map: &Map,
+        day: &DayData,
+        cursor: &AgentCursor,
+        actions: &[Action],
+    ) -> u32 {
+        let mut cursor = cursor.clone();
+        actions
+            .iter()
+            .map(|action| {
+                let steps = get_action_steps(map, day, &cursor, action);
+                if let Action::Move(direction) = action {
+                    let coord = map.get_coord_from_id(cursor.pos);
+                    cursor.pos = map.get_id_from_coord(direction.apply_to_coord(coord));
+                }
+                steps
+            })
+            .sum()
     }
 
     fn visited_spot(&self, state: &mut PlanningState, agent_id: usize, spot_id: CellId) {

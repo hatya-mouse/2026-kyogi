@@ -11,6 +11,9 @@ pub(crate) struct ManagerConfig {
     pub game_server_url: String,
     /// The name of the environment variable where the token is stored.
     pub game_token_env: String,
+    /// Number of agents that should be assigned as supply cars.
+    #[serde(default)]
+    pub supply_count: usize,
 }
 
 pub(super) fn load_config(cli: &Cli) -> Option<ManagerConfig> {

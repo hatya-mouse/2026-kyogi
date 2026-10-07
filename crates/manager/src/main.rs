@@ -82,7 +82,14 @@ async fn main() {
         tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
     };
 
-    let agents_answer = ApiAgentKindAnswer(vec![AgentKind::Patrol; initial_data.agents.len()]);
+    let supply_count = config
+        .supply_count
+        .min(initial_data.agents.len().saturating_sub(1));
+    let mut agent_kinds = vec![AgentKind::Supply; initial_data.agents.len()];
+    for kind in agent_kinds.iter_mut().skip(supply_count) {
+        *kind = AgentKind::Patrol;
+    }
+    let agents_answer = ApiAgentKindAnswer(agent_kinds);
     if let Err(err) = api.post_agents(&agents_answer).await {
         println_error(format!("Error submitting the agent kind:\n{}", err));
         return;
@@ -108,7 +115,12 @@ async fn main() {
             )
         })
         .collect();
-    let solver = Solver::new(&map, spots, initial_data.agents.len());
+    let solver = Solver::new(
+        &map,
+        spots,
+        initial_data.agents.len(),
+        initial_data.fuel_limits,
+    );
     let day_steps = initial_data.day_steps;
 
     wait_until(starts_at).await;
