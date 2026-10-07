@@ -46,7 +46,20 @@ fn validate_fuel(traces: &[AgentTrace], fuel_limit: u32, errors: &mut Vec<PlanVa
         }
 
         let mut fuel = trace.initial_fuel;
+        let mut checked_until = 0;
+
         for movement in &trace.moves {
+            // A supply car may meet a patrol car while it is waiting or moving
+            if has_supply_between_steps(
+                traces,
+                agent_id,
+                trace,
+                checked_until,
+                movement.departure_step,
+            ) {
+                fuel = fuel_limit;
+            }
+
             if movement.fuel > fuel {
                 errors.push(PlanValidationError::new(
                     agent_id,
@@ -55,31 +68,42 @@ fn validate_fuel(traces: &[AgentTrace], fuel_limit: u32, errors: &mut Vec<PlanVa
                         movement.arrival_step
                     ),
                 ));
-                continue;
+            } else {
+                fuel -= movement.fuel;
             }
 
-            fuel -= movement.fuel;
-            if has_supply_at_step(
+            // The movement itself consumes fuel before its arrival can refill it
+            if has_supply_between_steps(
                 traces,
                 agent_id,
+                trace,
+                movement.departure_step.saturating_add(1),
                 movement.arrival_step,
-                trace.positions[movement.arrival_step as usize],
             ) {
                 fuel = fuel_limit;
             }
+
+            checked_until = movement.arrival_step.saturating_add(1);
         }
     }
 }
 
-fn has_supply_at_step(
+fn has_supply_between_steps(
     traces: &[AgentTrace],
     patrol_id: usize,
-    step: u32,
-    position: crate::game::CellId,
+    patrol: &AgentTrace,
+    first_step: u32,
+    last_step: u32,
 ) -> bool {
-    traces.iter().enumerate().any(|(agent_id, trace)| {
-        agent_id != patrol_id
-            && trace.kind == AgentKind::Supply
-            && trace.positions.get(step as usize) == Some(&position)
+    (first_step..=last_step).any(|step| {
+        let Some(&position) = patrol.positions.get(step as usize) else {
+            return false;
+        };
+
+        traces.iter().enumerate().any(|(agent_id, trace)| {
+            agent_id != patrol_id
+                && trace.kind == AgentKind::Supply
+                && trace.positions.get(step as usize) == Some(&position)
+        })
     })
 }

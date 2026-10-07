@@ -1,6 +1,7 @@
 mod cost_map;
 mod distribution;
 mod graph;
+mod partial;
 mod planning_state;
 mod route;
 mod supply;
@@ -78,6 +79,7 @@ impl<'a> Solver<'a> {
             }
         }
 
+        self.add_partial_movements(&mut state, day, &cost_map);
         state.fill_remaining_waits(day);
         state.plan
     }

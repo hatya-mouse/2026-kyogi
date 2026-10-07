@@ -56,14 +56,23 @@ impl Solver<'_> {
         let mut patrol_steps = cursor.fixed_steps;
 
         for (index, pair) in route.windows(2).enumerate() {
-            // Check the patrol car state at the next route cell
-            patrol_fuel = patrol_fuel.saturating_sub(get_move_fuel(self.board.map, &pair[0]));
-            patrol_steps =
-                patrol_steps.saturating_add(cost_map.steps(&pair[0]).unwrap_or(u32::MAX));
+            let move_fuel = get_move_fuel(self.board.map, &pair[0]);
+            let move_steps = cost_map.steps(&pair[0]).unwrap_or(u32::MAX);
+            let (rendezvous, patrol_arrival, prefix_end, suffix_start) = if patrol_fuel < move_fuel
+            {
+                // Fuel is insufficient for the next movement, so rendezvous at the current cell
+                (pair[0], patrol_steps, index, index)
+            } else {
+                patrol_fuel -= move_fuel;
+                patrol_steps = patrol_steps.saturating_add(move_steps);
 
-            if patrol_fuel > 0 {
-                continue;
-            }
+                if patrol_fuel > 0 {
+                    continue;
+                }
+
+                // Fuel reaches zero exactly after entering the next cell
+                (pair[1], patrol_steps, index + 1, index + 1)
+            };
 
             // Try each supply car at the first fuel shortage
             for supply_id in state.supply_agents.clone() {
@@ -71,7 +80,6 @@ impl Solver<'_> {
                     continue;
                 };
 
-                let rendezvous = route[index + 1];
                 let supply_route = self.get_route(cost_map, supply.pos, rendezvous);
                 let Some(supply_actions) = self.route_to_actions(&supply_route) else {
                     continue;
@@ -79,19 +87,18 @@ impl Solver<'_> {
 
                 let supply_steps = self.route_steps(self.board.map, day, &supply, &supply_actions);
                 let supply_arrival = supply.fixed_steps.saturating_add(supply_steps);
-                let patrol_arrival = patrol_steps;
 
                 if supply_arrival > day.steps {
                     continue;
                 }
 
                 // Split the patrol route around the rendezvous cell
-                let patrol_prefix = &route[..=index + 1];
+                let patrol_prefix = &route[..=prefix_end];
                 let Some(prefix_actions) = self.route_to_actions(patrol_prefix) else {
                     continue;
                 };
 
-                let suffix = &route[index + 1..];
+                let suffix = &route[suffix_start..];
                 let Some(suffix_actions) = self.route_to_actions(suffix) else {
                     continue;
                 };

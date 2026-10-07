@@ -14,6 +14,7 @@ pub(super) struct AgentTrace {
 }
 
 pub(super) struct MoveTrace {
+    pub departure_step: u32,
     pub arrival_step: u32,
     pub fuel: u32,
 }
@@ -49,6 +50,7 @@ pub(super) fn build_trace(
                 append_positions(&mut positions, position, steps.saturating_sub(1));
                 positions.push(next);
                 moves.push(MoveTrace {
+                    departure_step: elapsed_steps.saturating_sub(steps),
                     arrival_step: elapsed_steps,
                     fuel: move_fuel(map, position),
                 });
