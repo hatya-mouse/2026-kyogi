@@ -1,18 +1,32 @@
 //! Distribute agents using a simple greedy ranking of reachable spots.
 
-mod assignment;
 mod dijkstra;
 
 use crate::{
-    algorithm::{CostMap, PlanningState, Solver},
+    algorithm::{CostMap, PlanningState, Solver, planning_state::SpotState},
     game::{AgentKind, CellId, DayData},
 };
-use assignment::{AgentCandidates, SpotCandidate};
+use std::collections::{HashMap, HashSet, hash_map::Entry};
+
+struct SpotCandidate {
+    pub(super) agent_id: usize,
+    pub(super) spot_id: CellId,
+    pub(super) steps: u32,
+}
 
 #[derive(Debug, Clone)]
 pub(super) struct Assignment {
     pub(super) agent_id: usize,
-    pub(super) spot: CellId,
+    pub(super) spot_id: CellId,
+}
+
+impl Assignment {
+    fn from_candidate(candidate: SpotCandidate) -> Self {
+        Self {
+            agent_id: candidate.agent_id,
+            spot_id: candidate.spot_id,
+        }
+    }
 }
 
 impl Solver<'_> {
@@ -22,7 +36,7 @@ impl Solver<'_> {
         state: &PlanningState,
         cost_map: &CostMap,
     ) -> Vec<Assignment> {
-        let mut agents_to_spots = Vec::new();
+        let mut candidates = Vec::new();
 
         for (agent_id, (agent, cursor)) in day.agents.iter().zip(state.cursor.iter()).enumerate() {
             // Skip non-patrol agents
@@ -31,46 +45,130 @@ impl Solver<'_> {
             }
 
             // Calculate the steps to the spots using Dijkstra's algorithm
-            let cell_steps = self.dijkstra_backward(cost_map, &cursor.pos);
+            let cell_steps = self.dijkstra(cost_map, &cursor.pos);
 
-            // Get the distances to spots
-            let mut spot_steps = Vec::new();
-            for (spot, details) in &self.board.spots {
-                // Do not assign an agent to the spot it is already occupying
-                if *spot == cursor.pos {
+            for (spot_id, SpotState { stocks, .. }) in &state.spots {
+                // 1. Do not assign an agent to the spot it is already occupying
+                if *spot_id == cursor.pos {
                     continue;
                 }
 
-                let distance = cell_steps[spot.as_usize()];
-
-                // Exclude unreachable spots
-                if distance == u32::MAX {
+                // 2. If the spot does not have any available stock, skip it
+                if *stocks == 0 {
                     continue;
                 }
 
-                // Exclude spots that is unable to reach within a day
-                // cursor.fixed_steps + distance = step number when the agent reaches the spot
-                if cursor.fixed_steps + distance > day.steps {
+                // 3. Exclude spots that this agent has already visited
+                if cursor.visited_spots.contains(spot_id) {
                     continue;
                 }
 
-                spot_steps.push(SpotCandidate {
-                    spot_id: *spot,
-                    brand: details.brand().clone(),
-                    distance,
-                    stock: details.stocks(),
-                });
+                // Calculate the number of steps it takes to move to the spot
+                let steps = cell_steps[spot_id.as_usize()];
+
+                // 4. Exclude unreachable spots
+                if steps == u32::MAX {
+                    continue;
+                }
+
+                // 5. Exclude spots that is unable to reach within a day
+                // cursor.fixed_steps + steps = step number when the agent reaches the spot
+                if cursor.fixed_steps + steps > day.steps {
+                    continue;
+                }
+
+                let candidate = SpotCandidate {
+                    agent_id,
+                    spot_id: *spot_id,
+                    steps,
+                };
+                candidates.push(candidate);
             }
-
-            spot_steps.sort_unstable_by_key(|candidate| (candidate.distance, candidate.spot_id));
-
-            agents_to_spots.push(AgentCandidates {
-                agent_id,
-                spots: spot_steps,
-            });
         }
 
-        // Greedily assign the highest-ranked available candidate.
-        self.search(&agents_to_spots)
+        // Sort by distance
+        candidates.sort_unstable_by_key(|c| c.steps);
+
+        // Limit the number of same spots
+        limit_candidates_by_stock(state, &mut candidates);
+
+        // Move unvisited brands to the top of the vector
+        prioritize_unvisited(state, &mut candidates);
+
+        // Take top candidates and return them
+        take_top_candidates(candidates, self.board.agent_count)
     }
+}
+
+/// Limits the number of same spots to the number of stocks by removing the distant spots.
+fn limit_candidates_by_stock(state: &PlanningState, candidates: &mut Vec<SpotCandidate>) {
+    let mut spot_counts: HashMap<CellId, u32> = HashMap::new();
+    let mut index = 0;
+    while let Some(spot_id) = candidates.get(index).map(|c| c.spot_id) {
+        // Increment the spot count
+        let spot_count = match spot_counts.entry(spot_id) {
+            Entry::Occupied(mut entry) => {
+                let count = entry.get_mut();
+                *count += 1;
+                *count
+            }
+            Entry::Vacant(entry) => {
+                entry.insert(1);
+                1
+            }
+        };
+
+        // If the spot count exceeds the spot's number of stocks, remove the candidate
+        let Some(SpotState { stocks, .. }) = state.spots.get(&spot_id) else {
+            break;
+        };
+        if spot_count > *stocks {
+            candidates.remove(index);
+        } else {
+            index += 1;
+        }
+    }
+}
+
+/// Moves unvisited brands to the top of the vector, prioritizing them.
+fn prioritize_unvisited(state: &PlanningState, candidates: &mut Vec<SpotCandidate>) {
+    // The index of the first non-prioritized candidates
+    let mut normal_start = 0;
+    let mut index = candidates.len() - 1;
+    while let Some(spot_id) = candidates.get(index).map(|c| c.spot_id) {
+        if index < normal_start {
+            break;
+        }
+
+        let Some(SpotState { brand, .. }) = state.spots.get(&spot_id) else {
+            break;
+        };
+
+        // Check if the spot is of unvisited brand
+        if state.unvisited_brands.contains(brand) {
+            let prioritized_candidate = candidates.remove(index);
+            candidates.insert(0, prioritized_candidate);
+            normal_start += 1;
+        }
+
+        index -= 1;
+    }
+}
+
+/// Take the top candidates for each agent and convert them to assignments.
+fn take_top_candidates(candidates: Vec<SpotCandidate>, agent_count: usize) -> Vec<Assignment> {
+    let mut assignments = Vec::new();
+    let mut unassigned_agents: HashSet<usize> = (0..agent_count).collect();
+
+    for candidate in candidates {
+        if unassigned_agents.remove(&candidate.agent_id) {
+            assignments.push(Assignment::from_candidate(candidate));
+        }
+
+        if unassigned_agents.is_empty() {
+            break;
+        }
+    }
+
+    assignments
 }

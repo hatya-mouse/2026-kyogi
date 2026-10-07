@@ -124,7 +124,7 @@ async fn main() {
             )
         })
         .collect();
-    let solver = Solver::new(&map, spots);
+    let solver = Solver::new(&map, spots, initial_data.agents.len());
     let day_steps = initial_data.day_steps;
 
     wait_until(starts_at).await;

@@ -22,10 +22,10 @@ pub struct Solver<'a> {
 }
 
 impl<'a> Solver<'a> {
-    pub fn new(map: &'a Map, spots: HashMap<CellId, Spot>) -> Self {
+    pub fn new(map: &'a Map, spots: HashMap<CellId, Spot>, agent_count: usize) -> Self {
         let adj_graph = AdjGraph::build(map);
         Self {
-            board: Board::new(map, spots),
+            board: Board::new(map, spots, agent_count),
             adj_graph,
         }
     }
@@ -44,29 +44,43 @@ impl<'a> Solver<'a> {
                 break;
             }
 
-            let mut added = 0;
+            let mut added = false;
             for assignment in assignments {
-                // Create a route to the spot
-                if let Some(cursor) = state.cursor.get_mut(assignment.agent_id) {
-                    let route = self.get_route(&cost_map, cursor.pos, assignment.spot);
-                    let Some(actions) = self.route_to_actions(&route) else {
-                        break;
-                    };
+                let Some(cursor) = state.cursor.get(assignment.agent_id) else {
+                    break;
+                };
 
-                    if !state.try_add_actions(
-                        self.board.map,
-                        day,
-                        assignment.agent_id,
-                        assignment.spot,
-                        actions,
-                    ) {
-                        continue;
-                    }
-                    added += 1;
+                // Create a route to the spot
+                let route = self.get_route(&cost_map, cursor.pos, assignment.spot_id);
+                let Some(actions) = self.route_to_actions(&route) else {
+                    break;
+                };
+
+                // Add the generated route as an action
+                if !state.try_add_actions(
+                    self.board.map,
+                    day,
+                    assignment.agent_id,
+                    assignment.spot_id,
+                    actions,
+                ) {
+                    continue;
                 }
+
+                // Mark the spot brand as visited today
+                if let Some(spot) = self.board.spots.get(&assignment.spot_id) {
+                    state.unvisited_brands.remove(spot.brand());
+                }
+                // Add the spot to visited spots
+                if let Some(cursor) = state.cursor.get_mut(assignment.agent_id) {
+                    cursor.visited_spots.insert(assignment.spot_id);
+                }
+
+                added = true;
             }
 
-            if added == 0 {
+            // If no actions were added, break the loop
+            if !added {
                 break;
             }
         }

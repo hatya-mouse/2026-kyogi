@@ -2,7 +2,10 @@ use crate::{
     algorithm::utils::get_action_steps,
     game::{Action, Board, Brand, CellId, DayData, DayPlan, Map, Spot},
 };
-use std::{collections::HashSet, num::NonZeroU32};
+use std::{
+    collections::{HashMap, HashSet},
+    num::NonZeroU32,
+};
 
 /// A temporary plan state that is used during planning.
 /// Will be reset every day.
@@ -13,7 +16,7 @@ pub(super) struct PlanningState {
     /// Current temporary state of the agents.
     pub cursor: Vec<AgentCursor>,
     /// Current temporary state of the spots.
-    pub spots: Vec<SpotState>,
+    pub spots: HashMap<CellId, SpotState>,
     /// Set of brands that has not been visited today.
     pub unvisited_brands: HashSet<Brand>,
 }
@@ -27,6 +30,19 @@ pub(super) struct AgentCursor {
     pub fuel: u32,
     /// Number of steps whose plans are already confirmed.
     pub fixed_steps: u32,
+    /// Spots that this agent has visited in the day.
+    pub visited_spots: HashSet<CellId>,
+}
+
+impl AgentCursor {
+    fn new(pos: CellId, fuel: u32) -> Self {
+        Self {
+            pos,
+            fuel,
+            fixed_steps: 0,
+            visited_spots: HashSet::new(),
+        }
+    }
 }
 
 /// The estimated state of the spot.
@@ -56,14 +72,14 @@ impl PlanningState {
             cursor: day
                 .agents
                 .iter()
-                .map(|agent| AgentCursor {
-                    pos: agent.pos,
-                    fuel: agent.fuel,
-                    fixed_steps: 0,
-                })
+                .map(|agent| AgentCursor::new(agent.pos, agent.fuel))
                 .collect(),
-            unvisited_brands: board.brands.clone(),
-            spots: board.spots.values().map(SpotState::from_spot).collect(),
+            unvisited_brands: board.brands.keys().copied().collect(),
+            spots: board
+                .spots
+                .iter()
+                .map(|(id, spot)| (*id, SpotState::from_spot(spot)))
+                .collect(),
         }
     }
 
