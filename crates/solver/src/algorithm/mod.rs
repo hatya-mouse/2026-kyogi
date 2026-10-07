@@ -1,54 +1,17 @@
 mod cost_map;
 mod distribution;
-mod fill_remaining;
 mod graph;
+mod planning_state;
 mod route;
 mod utils;
 
 use crate::{
-    algorithm::{cost_map::CostMap, graph::AdjGraph, utils::get_action_steps},
+    algorithm::{
+        cost_map::CostMap, graph::AdjGraph, planning_state::PlanningState, utils::get_action_steps,
+    },
     game::{CellId, DayData, DayPlan, Map, Spot},
 };
 use std::collections::HashMap;
-
-/// A temporary plan state that is used during planning.
-struct PlanningState {
-    /// A plan that is now being constructed.
-    plan: DayPlan,
-    /// Current temporary state of the agents.
-    cursor: Vec<AgentCursor>,
-}
-
-impl PlanningState {
-    fn from_day(day: &DayData) -> Self {
-        let agent_count = day.agents.len();
-
-        Self {
-            plan: DayPlan {
-                actions: vec![Vec::new(); agent_count],
-            },
-            cursor: day
-                .agents
-                .iter()
-                .map(|agent| AgentCursor {
-                    pos: agent.pos,
-                    fuel: agent.fuel,
-                    fixed_steps: 0,
-                })
-                .collect(),
-        }
-    }
-}
-
-/// The planned position of the agents, not a server's actual state.
-struct AgentCursor {
-    /// Current position of the agent.
-    pos: CellId,
-    /// Amount of remaining fuels.
-    fuel: u32,
-    /// Number of steps whose plans are already confirmed.
-    fixed_steps: u32,
-}
 
 // --- SOVLER ---
 
@@ -78,28 +41,34 @@ impl<'a> Solver<'a> {
         let mut state = PlanningState::from_day(day);
         let cost_map = CostMap::build(self.map, day);
 
-        // Select spots for each agents
-        let assignments = self.distribute_agents(day, &state, &cost_map);
+        loop {
+            // Select spots for each agents
+            let assignments = self.distribute_agents(day, &state, &cost_map);
 
-        for assignment in assignments {
-            // Create a route to the spot
-            if let Some(cursor) = state.cursor.get_mut(assignment.agent_id) {
-                let route = self.get_route(&cost_map, cursor.pos, assignment.spot);
-                let Some(actions) = self.route_to_actions(&route) else {
-                    break;
-                };
+            if assignments.is_empty() || !state.has_remaining(day) {
+                break;
+            }
 
-                let action_step_count: u32 = actions
-                    .iter()
-                    .map(|action| get_action_steps(self.map, day, cursor, action))
-                    .sum();
-                state.plan.extend_actions(assignment.agent_id, actions);
-                cursor.fixed_steps += action_step_count;
-                cursor.pos = assignment.spot;
+            for assignment in assignments {
+                // Create a route to the spot
+                if let Some(cursor) = state.cursor.get_mut(assignment.agent_id) {
+                    let route = self.get_route(&cost_map, cursor.pos, assignment.spot);
+                    let Some(actions) = self.route_to_actions(&route) else {
+                        break;
+                    };
+
+                    let action_step_count: u32 = actions
+                        .iter()
+                        .map(|action| get_action_steps(self.map, day, cursor, action))
+                        .sum();
+                    state.plan.extend_actions(assignment.agent_id, actions);
+                    cursor.fixed_steps += action_step_count;
+                    cursor.pos = assignment.spot;
+                }
             }
         }
 
-        self.fill_remaining_waits(day, &mut state);
+        state.fill_remaining_waits(day);
         state.plan
     }
 }

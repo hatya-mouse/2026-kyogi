@@ -1,5 +1,5 @@
 use crate::{
-    algorithm::AgentCursor,
+    algorithm::planning_state::AgentCursor,
     game::{Action, CellId, CellType, DayData, Map},
 };
 
