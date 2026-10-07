@@ -47,6 +47,7 @@ impl<'a> Solver<'a> {
                 break;
             }
 
+            let mut added = 0;
             for assignment in assignments {
                 // Create a route to the spot
                 if let Some(cursor) = state.cursor.get_mut(assignment.agent_id) {
@@ -64,7 +65,12 @@ impl<'a> Solver<'a> {
                     ) {
                         continue;
                     }
+                    added += 1;
                 }
+            }
+
+            if added == 0 {
+                break;
             }
         }
 

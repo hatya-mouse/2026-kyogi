@@ -13,6 +13,7 @@ pub(super) struct PlanningState {
 }
 
 /// The planned position of the agents, not a server's actual state.
+#[derive(Clone)]
 pub(super) struct AgentCursor {
     /// Current position of the agent.
     pub pos: CellId,
@@ -62,9 +63,17 @@ impl PlanningState {
         let Some(cursor) = self.cursor.get_mut(agent_id) else {
             return false;
         };
+        let mut next_cursor = cursor.clone();
         let action_steps: u32 = actions
             .iter()
-            .map(|action| get_action_steps(map, day, cursor, action))
+            .map(|action| {
+                let steps = get_action_steps(map, day, &next_cursor, action);
+                if let Action::Move(direction) = action {
+                    let coord = map.get_coord_from_id(next_cursor.pos);
+                    next_cursor.pos = map.get_id_from_coord(direction.apply_to_coord(coord));
+                }
+                steps
+            })
             .sum();
         if cursor.fixed_steps.saturating_add(action_steps) > day.steps {
             return false;

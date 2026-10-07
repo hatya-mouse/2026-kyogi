@@ -155,12 +155,25 @@ async fn main() {
         let day_data = day.to_solver_day_data(steps);
         let plan = solver.solve_day(&day_data);
 
+        if cli.verbose {
+            println_info(format!("Generated a plan for day {}:", day_data.day));
+
+            for (agent_id, agent_actions) in plan.actions.iter().enumerate() {
+                println!(
+                    "- Agent {}: {:?}",
+                    agent_id,
+                    serde_json::to_string(agent_actions).unwrap_or("could not show".to_string())
+                );
+            }
+        }
+
         if let Err(err) = api.post_plan(&ApiActionPlanAnswer(plan.actions)).await {
             println_error(format!("Error submitting the action plan:\n{}", err));
             continue;
         }
 
         println_info(format!("Submitted the plan for day {}.", day_data.day));
+
         if day_data.day >= last_day {
             println_info("Match finished.");
             break;
