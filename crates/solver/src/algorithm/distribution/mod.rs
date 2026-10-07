@@ -24,18 +24,18 @@ impl Solver<'_> {
     ) -> Vec<Assignment> {
         let mut agents_to_spots = Vec::new();
 
-        // Calculate the steps to the spots using Dijkstra's algorithm
         for (agent_id, (agent, cursor)) in day.agents.iter().zip(state.cursor.iter()).enumerate() {
             // Skip non-patrol agents
             if agent.kind != AgentKind::Patrol {
                 continue;
             }
 
+            // Calculate the steps to the spots using Dijkstra's algorithm
             let cell_steps = self.dijkstra_backward(cost_map, &cursor.pos);
 
             // Get the distances to spots
             let mut spot_steps = Vec::new();
-            for (spot, details) in &self.spots {
+            for (spot, details) in &self.board.spots {
                 // Do not assign an agent to the spot it is already occupying
                 if *spot == cursor.pos {
                     continue;

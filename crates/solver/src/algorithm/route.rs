@@ -12,13 +12,18 @@ impl Solver<'_> {
     pub(super) fn route_to_actions(&self, route: &[CellId]) -> Option<Vec<Action>> {
         route
             .windows(2)
-            .map(|pair| self.map.direction_to(pair[0], pair[1]).map(Action::Move))
+            .map(|pair| {
+                self.board
+                    .map
+                    .direction_to(pair[0], pair[1])
+                    .map(Action::Move)
+            })
             .collect()
     }
 
     pub(super) fn get_route(&self, cost_map: &CostMap, src: CellId, dst: CellId) -> Vec<CellId> {
         // Initialize a step array with zeros
-        let mut steps = vec![u32::MAX; self.map.cell_count()];
+        let mut steps = vec![u32::MAX; self.board.map.cell_count()];
         let mut closed = HashSet::new();
         let mut open = BinaryHeap::new();
         let mut previous = HashMap::new();
@@ -65,7 +70,7 @@ impl Solver<'_> {
                         previous.insert(neighbor, current);
 
                         let est_total =
-                            actual_cost.saturating_add(self.map.distance(*neighbor, dst));
+                            actual_cost.saturating_add(self.board.map.distance(*neighbor, dst));
                         open.push(Reverse((est_total, *neighbor)));
                     }
                 }

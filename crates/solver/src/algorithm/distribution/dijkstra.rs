@@ -8,7 +8,7 @@ impl Solver<'_> {
     /// Calculates the number of steps it takes to move to the spots from the src cell.
     pub(super) fn dijkstra_backward(&self, cost_map: &CostMap, src: &CellId) -> Vec<u32> {
         // Create a priority queue that stores (distance, cell)
-        let mut steps = vec![u32::MAX; self.map.cell_count()];
+        let mut steps = vec![u32::MAX; self.board.map.cell_count()];
         let mut pq = BinaryHeap::new();
 
         // Steps to the source cell is zero

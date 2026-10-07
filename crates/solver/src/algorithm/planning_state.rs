@@ -1,19 +1,25 @@
 use crate::{
     algorithm::utils::get_action_steps,
-    game::{Action, CellId, DayData, DayPlan, Map},
+    game::{Action, Board, Brand, CellId, DayData, DayPlan, Map, Spot},
 };
-use std::num::NonZeroU32;
+use std::{collections::HashSet, num::NonZeroU32};
 
 /// A temporary plan state that is used during planning.
+/// Will be reset every day.
+#[derive(Debug)]
 pub(super) struct PlanningState {
     /// A plan that is now being constructed.
     pub plan: DayPlan,
     /// Current temporary state of the agents.
     pub cursor: Vec<AgentCursor>,
+    /// Current temporary state of the spots.
+    pub spots: Vec<SpotState>,
+    /// Set of brands that has not been visited today.
+    pub unvisited_brands: HashSet<Brand>,
 }
 
 /// The planned position of the agents, not a server's actual state.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(super) struct AgentCursor {
     /// Current position of the agent.
     pub pos: CellId,
@@ -23,8 +29,26 @@ pub(super) struct AgentCursor {
     pub fixed_steps: u32,
 }
 
+/// The estimated state of the spot.
+#[derive(Clone, Debug)]
+pub(super) struct SpotState {
+    /// Brand of the spot.
+    pub brand: Brand,
+    /// Current stocks of the spot.
+    pub stocks: u32,
+}
+
+impl SpotState {
+    fn from_spot(spot: &Spot) -> Self {
+        Self {
+            brand: *spot.brand(),
+            stocks: spot.stocks(),
+        }
+    }
+}
+
 impl PlanningState {
-    pub(super) fn from_day(day: &DayData) -> Self {
+    pub(super) fn from_day(board: &Board, day: &DayData) -> Self {
         let agent_count = day.agents.len();
 
         Self {
@@ -38,6 +62,8 @@ impl PlanningState {
                     fixed_steps: 0,
                 })
                 .collect(),
+            unvisited_brands: board.brands.clone(),
+            spots: board.spots.values().map(SpotState::from_spot).collect(),
         }
     }
 

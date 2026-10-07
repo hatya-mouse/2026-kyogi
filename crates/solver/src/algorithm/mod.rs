@@ -7,7 +7,7 @@ mod utils;
 
 use crate::{
     algorithm::{cost_map::CostMap, graph::AdjGraph, planning_state::PlanningState},
-    game::{CellId, DayData, DayPlan, Map, Spot},
+    game::{Board, CellId, DayData, DayPlan, Map, Spot},
 };
 use std::collections::HashMap;
 
@@ -15,10 +15,8 @@ use std::collections::HashMap;
 
 /// A solver that calculates the plan for a day.
 pub struct Solver<'a> {
-    /// The current map of the game.
-    map: &'a Map,
-    /// Spots on the map.
-    spots: HashMap<CellId, Spot>,
+    /// The board of the game.
+    board: Board<'a>,
     /// Adjacent graph for the map.
     adj_graph: AdjGraph,
 }
@@ -27,8 +25,7 @@ impl<'a> Solver<'a> {
     pub fn new(map: &'a Map, spots: HashMap<CellId, Spot>) -> Self {
         let adj_graph = AdjGraph::build(map);
         Self {
-            map,
-            spots,
+            board: Board::new(map, spots),
             adj_graph,
         }
     }
@@ -36,8 +33,8 @@ impl<'a> Solver<'a> {
     /// Create a solve result for the day.
     pub fn solve_day(&self, day: &DayData) -> DayPlan {
         // Create a planning state and cost map
-        let mut state = PlanningState::from_day(day);
-        let cost_map = CostMap::build(self.map, day);
+        let mut state = PlanningState::from_day(&self.board, day);
+        let cost_map = CostMap::build(self.board.map, day);
 
         loop {
             // Select spots for each agents
@@ -57,7 +54,7 @@ impl<'a> Solver<'a> {
                     };
 
                     if !state.try_add_actions(
-                        self.map,
+                        self.board.map,
                         day,
                         assignment.agent_id,
                         assignment.spot,

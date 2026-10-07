@@ -1,6 +1,7 @@
 use crate::game::{CellId, CellType, Map};
 use std::collections::HashMap;
 
+/// Graph that stores cell id of adjacent cells.
 pub(super) struct AdjGraph {
     edges: HashMap<CellId, Vec<CellId>>,
 }
