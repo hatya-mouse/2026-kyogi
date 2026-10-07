@@ -13,6 +13,7 @@ use solver::{
     algorithm::Solver,
     game::{AgentKind, Brand, Map, Spot},
     tui::{println_error, println_info},
+    validator::validate_day_plan,
 };
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -159,6 +160,15 @@ async fn main() {
         previous_day = day_number;
         let day_data = day.as_solver_day_data(steps);
         let plan = solver.solve_day(&day_data);
+
+        if cli.verbose {
+            for error in validate_day_plan(&map, &day_data, &plan, initial_data.fuel_limits) {
+                println_error(format!(
+                    "Invalid generated plan for agent {}: {}",
+                    error.agent_id, error.message
+                ));
+            }
+        }
 
         if cli.verbose {
             println_info(format!("Generated a plan for day {}:", day_data.day));
