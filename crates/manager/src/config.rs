@@ -1,30 +1,16 @@
 use serde::Deserialize;
-use solver::{file::read_from_relative_path, net::WorkerId, tui::println_error};
-use std::{collections::HashMap, net::Ipv4Addr, path::PathBuf};
+use solver::{file::read_from_relative_path, tui::println_error};
+use std::path::PathBuf;
 
 use crate::Cli;
 
 /// The configuration for the manager.
 #[derive(Deserialize, Debug)]
 pub(crate) struct ManagerConfig {
-    /// The port number to start the manager on.
-    pub port: u16,
     /// The URL of the game server.
     pub game_server_url: String,
     /// The name of the environment variable where the token is stored.
     pub game_token_env: String,
-    /// IDs and data of the workers.
-    #[serde(default)]
-    pub workers: HashMap<WorkerId, WorkerInfo>,
-}
-
-/// Information of a worker such as IP address.
-#[derive(Deserialize, Debug)]
-pub(crate) struct WorkerInfo {
-    /// IP address of the worker.
-    pub address: Ipv4Addr,
-    /// Port number of the worker.
-    pub port: u16,
 }
 
 pub(super) fn load_config(cli: &Cli) -> Option<ManagerConfig> {

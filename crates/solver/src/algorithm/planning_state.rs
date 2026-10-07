@@ -1,5 +1,5 @@
 use crate::{
-    algorithm::utils::get_action_steps,
+    algorithm::utils::{get_action_steps, get_move_fuel},
     game::{Action, Board, Brand, CellId, DayData, DayPlan, Map, Spot},
 };
 use std::{
@@ -106,23 +106,26 @@ impl PlanningState {
             return false;
         };
         let mut next_cursor = cursor.clone();
+        let mut fuel_used: u32 = 0;
         let action_steps: u32 = actions
             .iter()
             .map(|action| {
                 let steps = get_action_steps(map, day, &next_cursor, action);
                 if let Action::Move(direction) = action {
+                    fuel_used = fuel_used.saturating_add(get_move_fuel(map, &next_cursor));
                     let coord = map.get_coord_from_id(next_cursor.pos);
                     next_cursor.pos = map.get_id_from_coord(direction.apply_to_coord(coord));
                 }
                 steps
             })
             .sum();
-        if cursor.fixed_steps.saturating_add(action_steps) > day.steps {
+        if cursor.fixed_steps.saturating_add(action_steps) > day.steps || fuel_used > cursor.fuel {
             return false;
         }
 
         self.plan.extend_actions(agent_id, actions);
         cursor.fixed_steps += action_steps;
+        cursor.fuel -= fuel_used;
         cursor.pos = destination;
         true
     }

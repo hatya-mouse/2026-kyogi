@@ -13,5 +13,5 @@ pub(crate) struct ApiActionPlanAnswer(pub Vec<Vec<Action>>);
 /// The response returned by the game server when submitting an action plan.
 #[derive(serde::Deserialize)]
 pub(crate) struct PostPlanResponse {
-    revision: i64,
+    pub revision: i64,
 }

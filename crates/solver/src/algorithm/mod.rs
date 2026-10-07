@@ -36,9 +36,10 @@ impl<'a> Solver<'a> {
         let mut state = PlanningState::from_day(&self.board, day);
         let cost_map = CostMap::build(self.board.map, day);
 
+        let mut rejected_assignments = std::collections::HashSet::new();
         loop {
             // Select spots for each agents
-            let assignments = self.distribute_agents(day, &state, &cost_map);
+            let assignments = self.distribute_agents(day, &state, &cost_map, &rejected_assignments);
 
             if assignments.is_empty() || !state.has_remaining(day) {
                 break;
@@ -47,7 +48,7 @@ impl<'a> Solver<'a> {
             let mut added = false;
             for assignment in assignments {
                 let Some(cursor) = state.cursor.get(assignment.agent_id) else {
-                    break;
+                    continue;
                 };
 
                 // Create a route to the spot
@@ -64,16 +65,19 @@ impl<'a> Solver<'a> {
                     assignment.spot_id,
                     actions,
                 ) {
+                    rejected_assignments.insert((assignment.agent_id, assignment.spot_id));
                     continue;
                 }
 
                 self.visited_spot(&mut state, assignment.agent_id, assignment.spot_id);
                 added = true;
+                rejected_assignments.clear();
+                break;
             }
 
             // If no actions were added, break the loop
             if !added {
-                break;
+                continue;
             }
         }
 

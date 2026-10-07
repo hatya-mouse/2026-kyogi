@@ -1,5 +1,4 @@
 {
-    "port": 8080,
     "game_server_url": "https://procon37arena.online",
     "game_token_env": "HEX_UDON_TOKEN"
 }
