@@ -1,4 +1,7 @@
-use crate::game::{Action, CellId, DayData, DayPlan};
+use crate::{
+    algorithm::utils::get_action_steps,
+    game::{Action, CellId, DayData, DayPlan, Map},
+};
 use std::num::NonZeroU32;
 
 /// A temporary plan state that is used during planning.
@@ -24,9 +27,7 @@ impl PlanningState {
         let agent_count = day.agents.len();
 
         Self {
-            plan: DayPlan {
-                actions: vec![Vec::new(); agent_count],
-            },
+            plan: DayPlan::new(agent_count),
             cursor: day
                 .agents
                 .iter()
@@ -38,9 +39,7 @@ impl PlanningState {
                 .collect(),
         }
     }
-}
 
-impl PlanningState {
     /// Returns whether the current plan has remaining steps for any agents.
     pub(super) fn has_remaining(&self, day: &DayData) -> bool {
         for cursor in &self.cursor {
@@ -50,6 +49,31 @@ impl PlanningState {
             }
         }
         false
+    }
+
+    pub(super) fn try_add_actions(
+        &mut self,
+        map: &Map,
+        day: &DayData,
+        agent_id: usize,
+        destination: CellId,
+        actions: Vec<Action>,
+    ) -> bool {
+        let Some(cursor) = self.cursor.get_mut(agent_id) else {
+            return false;
+        };
+        let action_steps: u32 = actions
+            .iter()
+            .map(|action| get_action_steps(map, day, cursor, action))
+            .sum();
+        if cursor.fixed_steps.saturating_add(action_steps) > day.steps {
+            return false;
+        }
+
+        self.plan.extend_actions(agent_id, actions);
+        cursor.fixed_steps += action_steps;
+        cursor.pos = destination;
+        true
     }
 
     /// Pads each agent's unfinished plan with a wait action.

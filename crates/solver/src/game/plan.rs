@@ -6,6 +6,7 @@ use std::num::NonZeroU32;
 
 /// A plan for a single day.
 pub struct DayPlan {
+    /// Actions for each agent for the day.
     pub actions: Vec<Vec<Action>>,
 }
 
