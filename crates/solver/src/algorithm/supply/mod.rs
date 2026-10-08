@@ -99,6 +99,7 @@ impl Solver<'_> {
                         if route_added || wait_added {
                             supply_state.refills.push(RefillEvent::new(
                                 assigned_patrol,
+                                randezvous_spot.cell_id,
                                 randezvous_spot.patrol_arrival_steps,
                             ));
                         }

@@ -2,6 +2,7 @@ use crate::{
     algorithm::{CostMap, PlanningState, Solver, supply::SupplyState, utils::get_action_steps},
     game::{Action, Brand, CellId, DayData},
 };
+use std::collections::HashSet;
 
 impl Solver<'_> {
     pub(super) fn recalculate_after_refills(
@@ -12,15 +13,20 @@ impl Solver<'_> {
         cost_map: &CostMap,
     ) {
         let mut refills = supply_state.refills.clone();
-        refills.sort_unstable_by_key(|refill| refill.step());
-        refills.dedup_by(|left, right| {
-            left.patrol_id() == right.patrol_id() && left.step() == right.step()
-        });
+        refills.sort_unstable_by_key(|refill| refill.step);
+        let mut recalculated_patrols = HashSet::new();
 
         for refill in refills {
-            self.restore_patrol_state(state, refill.patrol_id(), refill.step());
-            self.truncate_patrol_plan(state, day, refill.patrol_id(), refill.step());
-            self.recalculate_patrol(state, day, cost_map, refill.patrol_id());
+            if !recalculated_patrols.insert(refill.patrol_id) {
+                continue;
+            }
+
+            self.restore_patrol_state(state, refill.patrol_id, refill.step);
+            if !self.truncate_patrol_plan(state, day, refill.patrol_id, refill.cell_id, refill.step)
+            {
+                continue;
+            }
+            self.recalculate_patrol(state, day, cost_map, refill.patrol_id);
         }
     }
 
@@ -76,13 +82,14 @@ impl Solver<'_> {
         state: &mut PlanningState,
         day: &DayData,
         patrol_id: usize,
+        refill_cell: CellId,
         refill_step: u32,
-    ) {
+    ) -> bool {
         let Some(cursor) = state.cursor.get(patrol_id).cloned() else {
-            return;
+            return false;
         };
         let Some(actions) = state.plan.actions.get(patrol_id).cloned() else {
-            return;
+            return false;
         };
 
         let mut steps: u32 = 0;
@@ -109,6 +116,10 @@ impl Solver<'_> {
             action_count += 1;
         }
 
+        if position != refill_cell || steps != refill_step {
+            return false;
+        }
+
         if let Some(actions) = state.plan.actions.get_mut(patrol_id) {
             actions.truncate(action_count);
         }
@@ -121,6 +132,8 @@ impl Solver<'_> {
                 cursor.pos = position;
             }
         }
+
+        true
     }
 
     fn recalculate_patrol(

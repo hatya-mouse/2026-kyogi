@@ -1,4 +1,4 @@
-use crate::game::{AgentKind, DayData};
+use crate::game::{AgentKind, CellId, DayData};
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -27,21 +27,18 @@ pub(in crate::algorithm) struct SupplyAgentCursor {
 
 #[derive(Debug, Clone, Default)]
 pub(in crate::algorithm) struct RefillEvent {
-    pub(super) patrol_id: usize,
-    pub(super) step: u32,
+    pub patrol_id: usize,
+    pub cell_id: CellId,
+    pub step: u32,
 }
 
 impl RefillEvent {
-    pub(super) fn new(patrol_id: usize, step: u32) -> Self {
-        Self { patrol_id, step }
-    }
-
-    pub(in crate::algorithm) fn patrol_id(&self) -> usize {
-        self.patrol_id
-    }
-
-    pub(in crate::algorithm) fn step(&self) -> u32 {
-        self.step
+    pub(super) fn new(patrol_id: usize, cell_id: CellId, step: u32) -> Self {
+        Self {
+            patrol_id,
+            cell_id,
+            step,
+        }
     }
 }
 
