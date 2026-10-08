@@ -65,7 +65,7 @@ impl Solver<'_> {
                     let route =
                         self.get_route(cost_map, supply_cursor.pos, randezvous_spot.cell_id);
                     let Some(actions) = self.route_to_actions(&route) else {
-                        break;
+                        continue;
                     };
 
                     // Add a direct route to the patrol agent
