@@ -2,15 +2,8 @@ mod state;
 
 use crate::{
     algorithm::{CostMap, PlanningState, Solver, supply::state::SupplyState},
-    game::{CellId, DayData},
+    game::DayData,
 };
-
-struct RandezvousSpot {
-    /// The cell id of the randezvous spot.
-    cell_id: CellId,
-    /// The step number when the patrol arrives at the randezvous spot.
-    patrol_arrival_steps: u32,
-}
 
 impl Solver<'_> {
     pub(super) fn build_supply_plan(
@@ -49,17 +42,14 @@ impl Solver<'_> {
                     let steps_to_cell = cell_steps[patrol_pos.as_usize()];
                     let supply_arrival_steps = cursor.fixed_steps + steps_to_cell;
                     if supply_arrival_steps <= patrol_arrival_steps {
-                        randezvous_spot = Some(RandezvousSpot {
-                            cell_id: *patrol_pos,
-                            patrol_arrival_steps,
-                        });
+                        randezvous_spot = Some(*patrol_pos);
                         break;
                     }
                 }
 
                 if let Some(randezvous_spot) = randezvous_spot {
                     // Calculate a route using A* algorithm
-                    let route = self.get_route(cost_map, cursor.pos, randezvous_spot.cell_id);
+                    let route = self.get_route(cost_map, cursor.pos, randezvous_spot);
                     let Some(actions) = self.route_to_actions(&route) else {
                         break;
                     };
@@ -70,7 +60,7 @@ impl Solver<'_> {
                             self.board.map,
                             day,
                             *agent_id,
-                            randezvous_spot.cell_id,
+                            randezvous_spot,
                             actions.clone(),
                         );
                 }
