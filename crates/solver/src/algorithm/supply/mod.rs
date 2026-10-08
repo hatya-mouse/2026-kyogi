@@ -68,25 +68,36 @@ impl Solver<'_> {
                             continue;
                         }
 
-                        // Add a direct route to the patrol agent
-                        added = added
-                            || state.try_add_actions(
+                        // Add a direct route to the rendezvous spot
+                        let route_added = state.try_add_actions(
+                            self.board.map,
+                            day,
+                            *agent_id,
+                            randezvous_spot.cell_id,
+                            actions,
+                        );
+
+                        // Wait for the patrol agent to arrive
+                        let wait_added = if route_added
+                            && let Some(supply_cursor) = state.cursor.get(*agent_id)
+                            && let Some(wait_steps) = NonZeroU32::new(
+                                randezvous_spot
+                                    .patrol_arrival_steps
+                                    .saturating_sub(supply_cursor.fixed_steps),
+                            ) {
+                            // Add the wait through the planning state to keep fixed_steps in sync
+                            state.try_add_actions(
                                 self.board.map,
                                 day,
                                 *agent_id,
                                 randezvous_spot.cell_id,
-                                actions.clone(),
-                            );
-
-                        // Wait for the patrol agent to arrive
-                        if let Some(patrol_cursor) = state.cursor.get(*agent_id)
-                            && let Some(wait_steps) = NonZeroU32::new(
-                                randezvous_spot.patrol_arrival_steps - patrol_cursor.fixed_steps,
+                                vec![Action::Wait(wait_steps)],
                             )
-                            && let Some(supply_plan) = state.plan.actions.get_mut(*agent_id)
-                        {
-                            supply_plan.push(Action::Wait(wait_steps));
-                        }
+                        } else {
+                            false
+                        };
+
+                        added |= route_added || wait_added;
                     }
                 }
             }
