@@ -136,6 +136,7 @@ fn limit_candidates_by_stock(state: &PlanningState, candidates: &mut Vec<SpotCan
 fn prioritize_candidates(state: &PlanningState, candidates: &mut [SpotCandidate]) {
     const URGENCY_MARGIN: u32 = 5;
     let mut brand_agents = HashMap::new();
+    let brand_representatives = find_brand_representatives(state, candidates);
 
     for candidate in candidates.iter() {
         let Some(spot) = state.spots.get(&candidate.spot_id) else {
@@ -153,7 +154,7 @@ fn prioritize_candidates(state: &PlanningState, candidates: &mut [SpotCandidate]
 
     candidates.sort_unstable_by_key(|candidate| {
         let Some(spot) = state.spots.get(&candidate.spot_id) else {
-            return (true, usize::MAX, true, candidate.steps);
+            return (true, true, usize::MAX, true, candidate.steps);
         };
 
         let is_visited = !state.unvisited_brands.contains(&spot.brand);
@@ -161,7 +162,47 @@ fn prioritize_candidates(state: &PlanningState, candidates: &mut [SpotCandidate]
             .get(&spot.brand)
             .map_or(usize::MAX, HashSet::len);
         let urgency = !is_visited && candidate.slack > URGENCY_MARGIN;
+        let is_representative =
+            brand_representatives.contains(&(candidate.agent_id, candidate.spot_id));
 
-        (is_visited, available_agents, urgency, candidate.steps)
+        (
+            is_visited,
+            !is_representative,
+            available_agents,
+            urgency,
+            candidate.steps,
+        )
     });
+}
+
+fn find_brand_representatives(
+    state: &PlanningState,
+    candidates: &[SpotCandidate],
+) -> HashSet<(usize, CellId)> {
+    let mut representatives = HashMap::<_, (usize, CellId, u32)>::new();
+
+    for candidate in candidates {
+        let Some(spot) = state.spots.get(&candidate.spot_id) else {
+            continue;
+        };
+
+        if !state.unvisited_brands.contains(&spot.brand) {
+            continue;
+        }
+
+        let representative = representatives.entry(spot.brand).or_insert((
+            candidate.agent_id,
+            candidate.spot_id,
+            candidate.steps,
+        ));
+
+        if candidate.steps < representative.2 {
+            *representative = (candidate.agent_id, candidate.spot_id, candidate.steps);
+        }
+    }
+
+    representatives
+        .into_values()
+        .map(|(agent_id, spot_id, _)| (agent_id, spot_id))
+        .collect()
 }
