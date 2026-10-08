@@ -180,9 +180,12 @@ impl PlanningState {
             // Add wait instruction if the remaining steps is more than 0
             if let Some(wait_steps) = NonZeroU32::new(remaining_steps) {
                 agent_actions.push(Action::Wait(wait_steps));
-            }
 
-            cursor.fixed_steps = day.steps;
+                cursor.fixed_steps = day.steps;
+                cursor
+                    .pos_history
+                    .extend(vec![cursor.pos; remaining_steps as usize]);
+            }
         }
     }
 }
