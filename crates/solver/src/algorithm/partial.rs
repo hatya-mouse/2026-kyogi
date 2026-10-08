@@ -7,7 +7,7 @@ use crate::{
         planning_state::PlanningState,
         utils::{get_action_steps, get_move_fuel},
     },
-    game::{Action, AgentKind, CellId, DayData},
+    game::{Action, CellId, DayData},
 };
 use std::cmp::Reverse;
 
@@ -19,33 +19,26 @@ struct PartialCandidate {
 }
 
 impl Solver<'_> {
-    /// Adds at most one partial route for each patrol agent
+    /// Adds at most one partial route for the given patrol agent.
     pub(super) fn add_partial_movements(
         &self,
         state: &mut PlanningState,
         day: &DayData,
         cost_map: &CostMap,
+        agent_id: usize,
     ) {
-        let agent_count = state.cursor.len();
+        // A partial route improves the next day's starting position without claiming a spot
+        let Some(candidate) = self.select_partial_candidate(state, day, cost_map, agent_id) else {
+            return;
+        };
 
-        for agent_id in 0..agent_count {
-            // A partial route improves the next day's starting position without claiming a spot
-            let Some(candidate) = self.select_partial_candidate(state, day, cost_map, agent_id)
-            else {
-                continue;
-            };
-
-            // Keep the existing planning-state validation as the final guard
-            if state.try_add_actions(
-                self.board.map,
-                day,
-                agent_id,
-                candidate.destination,
-                candidate.actions,
-            ) {
-                continue;
-            }
-        }
+        state.try_add_actions(
+            self.board.map,
+            day,
+            agent_id,
+            candidate.destination,
+            candidate.actions,
+        );
     }
 
     fn select_partial_candidate(
@@ -55,12 +48,6 @@ impl Solver<'_> {
         cost_map: &CostMap,
         agent_id: usize,
     ) -> Option<PartialCandidate> {
-        // Skip supply agents
-        let agent = day.agents.get(agent_id)?;
-        if agent.kind != AgentKind::Patrol {
-            return None;
-        }
-
         let cursor = state.cursor.get(agent_id)?;
         let mut candidates = Vec::new();
 

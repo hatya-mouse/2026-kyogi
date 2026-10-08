@@ -45,7 +45,7 @@ impl AgentCursor {
             fuel,
             fixed_steps: 0,
             visited_spots: HashSet::new(),
-            pos_history: Vec::new(),
+            pos_history: vec![pos],
         }
     }
 }
@@ -124,13 +124,11 @@ impl PlanningState {
         let mut next_cursor = cursor.clone();
         let mut fuel_used: u32 = 0;
         let mut action_steps: u32 = 0;
-        let mut additional_pos_history = cursor.pos_history.clone();
+        let mut next_pos_history = cursor.pos_history.clone();
 
         for action in &actions {
+            let origin = next_cursor.pos;
             let steps = get_action_steps(map, day, &next_cursor, action);
-
-            // Add the position to additional_pos_history
-            additional_pos_history.extend(vec![next_cursor.pos; steps as usize]);
 
             if let Action::Move(direction) = action {
                 if !self.supply_agents.contains(&agent_id) {
@@ -139,6 +137,14 @@ impl PlanningState {
                 let coord = map.get_coord_from_id(next_cursor.pos);
                 next_cursor.pos = map.get_id_from_coord(direction.apply_to_coord(coord));
             }
+
+            append_position_history(
+                &mut next_pos_history,
+                origin,
+                next_cursor.pos,
+                action,
+                steps,
+            );
             action_steps += steps;
         }
 
@@ -155,8 +161,7 @@ impl PlanningState {
             cursor.fuel -= fuel_used;
         }
         cursor.pos = destination;
-        // Add the position to the position history
-        cursor.pos_history.extend(additional_pos_history);
+        cursor.pos_history = next_pos_history;
         true
     }
 
@@ -166,11 +171,10 @@ impl PlanningState {
     ///
     /// # Arguments
     /// - `day`: The day data for the current game day.
-    pub(super) fn fill_remaining_waits(&mut self, day: &DayData) {
-        assert_eq!(self.plan.actions.len(), self.cursor.len());
-        assert_eq!(self.cursor.len(), day.agents.len());
-
-        for (agent_actions, cursor) in self.plan.actions.iter_mut().zip(self.cursor.iter_mut()) {
+    pub(super) fn fill_remaining_waits(&mut self, day: &DayData, agent_id: usize) {
+        if let Some(agent_actions) = self.plan.actions.get_mut(agent_id)
+            && let Some(cursor) = self.cursor.get_mut(agent_id)
+        {
             let remaining_steps = day.steps.saturating_sub(cursor.fixed_steps);
 
             // Add wait instruction if the remaining steps is more than 0
@@ -179,6 +183,27 @@ impl PlanningState {
             }
 
             cursor.fixed_steps = day.steps;
+        }
+    }
+}
+
+/// Appends the position after each effective step of an action.
+fn append_position_history(
+    history: &mut Vec<CellId>,
+    origin: CellId,
+    destination: CellId,
+    action: &Action,
+    steps: u32,
+) {
+    match action {
+        Action::Move(_) => {
+            if steps > 1 {
+                history.extend(std::iter::repeat_n(origin, steps as usize - 1));
+            }
+            history.push(destination);
+        }
+        Action::Wait(_) => {
+            history.extend(std::iter::repeat_n(destination, steps as usize));
         }
     }
 }

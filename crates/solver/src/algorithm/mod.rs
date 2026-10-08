@@ -11,7 +11,7 @@ use crate::{
     algorithm::{
         cost_map::CostMap, distribution::Assignment, graph::AdjGraph, planning_state::PlanningState,
     },
-    game::{Board, CellId, DayData, DayPlan, Map, Spot},
+    game::{AgentKind, Board, CellId, DayData, DayPlan, Map, Spot},
 };
 use std::collections::{HashMap, HashSet};
 
@@ -73,11 +73,32 @@ impl<'a> Solver<'a> {
             }
         }
 
+        // Fill the remaining plans for patrol agents
+        for agent_id in day
+            .agents
+            .iter()
+            .enumerate()
+            .filter(|(_, agent)| agent.kind == AgentKind::Patrol)
+            .map(|(id, _)| id)
+        {
+            self.add_partial_movements(&mut state, day, &cost_map, agent_id);
+            state.fill_remaining_waits(day, agent_id);
+        }
+
         // Generate plan for supply agents
         self.build_supply_plan(&mut state, day, &cost_map);
 
-        self.add_partial_movements(&mut state, day, &cost_map);
-        state.fill_remaining_waits(day);
+        // Fill the remaining for supply agents
+        for agent_id in day
+            .agents
+            .iter()
+            .enumerate()
+            .filter(|(_, agent)| agent.kind == AgentKind::Supply)
+            .map(|(id, _)| id)
+        {
+            state.fill_remaining_waits(day, agent_id);
+        }
+
         state.plan
     }
 
