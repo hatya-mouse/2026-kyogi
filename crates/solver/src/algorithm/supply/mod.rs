@@ -63,6 +63,11 @@ impl Solver<'_> {
                             continue;
                         };
 
+                        // Does not accept empty array since it can create an infinite loop
+                        if actions.is_empty() {
+                            continue;
+                        }
+
                         // Add a direct route to the patrol agent
                         added = added
                             || state.try_add_actions(
