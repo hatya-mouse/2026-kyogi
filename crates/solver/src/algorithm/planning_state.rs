@@ -21,8 +21,6 @@ pub(super) struct PlanningState {
     pub unvisited_brands: HashSet<Brand>,
     /// IDs of the agents assigned as supply cars.
     pub supply_agents: HashSet<usize>,
-    /// Each supply agent's responsible patrol agents.
-    pub responsible_supplies: HashMap<usize, Vec<usize>>,
 }
 
 /// The planned position of the agents, not a server's actual state.
@@ -36,6 +34,8 @@ pub(super) struct AgentCursor {
     pub fixed_steps: u32,
     /// Spots that this agent has visited in the day.
     pub visited_spots: HashSet<CellId>,
+    /// Position of the agent at the start of the steps.
+    pub pos_history: Vec<CellId>,
 }
 
 impl AgentCursor {
@@ -45,6 +45,7 @@ impl AgentCursor {
             fuel,
             fixed_steps: 0,
             visited_spots: HashSet::new(),
+            pos_history: Vec::new(),
         }
     }
 }
@@ -71,9 +72,6 @@ impl PlanningState {
     pub(super) fn from_day(board: &Board, day: &DayData) -> Self {
         let agent_count = day.agents.len();
 
-        // Pick responsible patrol agents for each supply agent
-        let responsible_supplies = assign_patrols(day);
-
         Self {
             plan: DayPlan::new(agent_count),
             cursor: day
@@ -95,7 +93,6 @@ impl PlanningState {
                     (agent.kind == AgentKind::Supply).then_some(agent_id)
                 })
                 .collect(),
-            responsible_supplies,
         }
     }
 
@@ -121,22 +118,30 @@ impl PlanningState {
         let Some(cursor) = self.cursor.get_mut(agent_id) else {
             return false;
         };
+        let Some(agent) = day.agents.get(agent_id) else {
+            return false;
+        };
         let mut next_cursor = cursor.clone();
         let mut fuel_used: u32 = 0;
-        let action_steps: u32 = actions
-            .iter()
-            .map(|action| {
-                let steps = get_action_steps(map, day, &next_cursor, action);
-                if let Action::Move(direction) = action {
-                    if !self.supply_agents.contains(&agent_id) {
-                        fuel_used = fuel_used.saturating_add(get_move_fuel(map, &next_cursor.pos));
-                    }
-                    let coord = map.get_coord_from_id(next_cursor.pos);
-                    next_cursor.pos = map.get_id_from_coord(direction.apply_to_coord(coord));
+        let mut action_steps: u32 = 0;
+        let mut additional_pos_history = cursor.pos_history.clone();
+
+        for action in &actions {
+            let steps = get_action_steps(map, day, &next_cursor, action);
+
+            // Add the position to additional_pos_history
+            additional_pos_history.extend(vec![next_cursor.pos; steps as usize]);
+
+            if let Action::Move(direction) = action {
+                if !self.supply_agents.contains(&agent_id) {
+                    fuel_used = fuel_used.saturating_add(get_move_fuel(map, &next_cursor.pos));
                 }
-                steps
-            })
-            .sum();
+                let coord = map.get_coord_from_id(next_cursor.pos);
+                next_cursor.pos = map.get_id_from_coord(direction.apply_to_coord(coord));
+            }
+            action_steps += steps;
+        }
+
         if cursor.fixed_steps.saturating_add(action_steps) > day.steps
             || fuel_used > cursor.fuel
             || next_cursor.pos != destination
@@ -146,8 +151,12 @@ impl PlanningState {
 
         self.plan.extend_actions(agent_id, actions);
         cursor.fixed_steps += action_steps;
-        cursor.fuel -= fuel_used;
+        if agent.kind == AgentKind::Patrol {
+            cursor.fuel -= fuel_used;
+        }
         cursor.pos = destination;
+        // Add the position to the position history
+        cursor.pos_history.extend(additional_pos_history);
         true
     }
 
@@ -172,36 +181,4 @@ impl PlanningState {
             cursor.fixed_steps = day.steps;
         }
     }
-}
-
-fn assign_patrols(day: &DayData) -> HashMap<usize, Vec<usize>> {
-    let mut responsible_supplies: HashMap<usize, Vec<usize>> = day
-        .agents
-        .iter()
-        .enumerate()
-        .filter(|(_, agent)| agent.kind == AgentKind::Supply)
-        .map(|(id, _)| (id, Vec::new()))
-        .collect();
-
-    if !responsible_supplies.is_empty() {
-        let mut patrol_agents: Vec<_> = day
-            .agents
-            .iter()
-            .enumerate()
-            .filter(|(_, agent)| agent.kind == AgentKind::Patrol)
-            .map(|(id, _)| id)
-            .collect();
-        let patrols_per_supply = patrol_agents.len() / responsible_supplies.len();
-
-        for patrols in responsible_supplies.values_mut() {
-            // Take the patrols_per_supply number of patrol agents
-            patrols.extend(
-                patrol_agents
-                    .drain(0..patrols_per_supply)
-                    .collect::<Vec<_>>(),
-            );
-        }
-    }
-
-    responsible_supplies
 }

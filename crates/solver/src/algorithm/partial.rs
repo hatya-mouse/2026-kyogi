@@ -55,6 +55,7 @@ impl Solver<'_> {
         cost_map: &CostMap,
         agent_id: usize,
     ) -> Option<PartialCandidate> {
+        // Skip supply agents
         let agent = day.agents.get(agent_id)?;
         if agent.kind != AgentKind::Patrol {
             return None;

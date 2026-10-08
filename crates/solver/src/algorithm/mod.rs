@@ -9,12 +9,9 @@ mod utils;
 
 use crate::{
     algorithm::{
-        cost_map::CostMap,
-        graph::AdjGraph,
-        planning_state::{AgentCursor, PlanningState},
-        utils::get_action_steps,
+        cost_map::CostMap, distribution::Assignment, graph::AdjGraph, planning_state::PlanningState,
     },
-    game::{Action, Board, CellId, DayData, DayPlan, Map, Spot},
+    game::{Board, CellId, DayData, DayPlan, Map, Spot},
 };
 use std::collections::{HashMap, HashSet};
 
@@ -60,11 +57,11 @@ impl<'a> Solver<'a> {
             let mut added = false;
             for assignment in assignments {
                 if !self.try_add_assignment(&mut state, day, &cost_map, &assignment) {
-                    rejected_assignments.insert((assignment.agent_id, assignment.spot_id));
+                    rejected_assignments.insert((assignment.agent_id, assignment.cell_id));
                     continue;
                 }
 
-                self.visited_spot(&mut state, assignment.agent_id, assignment.spot_id);
+                self.visited_spot(&mut state, assignment.agent_id, assignment.cell_id);
                 added = true;
                 rejected_assignments.clear();
                 break;
@@ -76,31 +73,40 @@ impl<'a> Solver<'a> {
             }
         }
 
+        // Generate plan for supply agents
+        self.build_supply_plan(&mut state, day, &cost_map);
+
         self.add_partial_movements(&mut state, day, &cost_map);
         state.fill_remaining_waits(day);
         state.plan
     }
 
-    /// Calculates the steps required by an action sequence
-    fn route_steps(
+    /// Tries to add a direct route or a synchronized supply route
+    fn try_add_assignment(
         &self,
-        map: &Map,
+        state: &mut PlanningState,
         day: &DayData,
-        cursor: &AgentCursor,
-        actions: &[Action],
-    ) -> u32 {
-        let mut cursor = cursor.clone();
-        actions
-            .iter()
-            .map(|action| {
-                let steps = get_action_steps(map, day, &cursor, action);
-                if let Action::Move(direction) = action {
-                    let coord = map.get_coord_from_id(cursor.pos);
-                    cursor.pos = map.get_id_from_coord(direction.apply_to_coord(coord));
-                }
-                steps
-            })
-            .sum()
+        cost_map: &CostMap,
+        assignment: &Assignment,
+    ) -> bool {
+        let Some(cursor) = state.cursor.get(assignment.agent_id).cloned() else {
+            return false;
+        };
+
+        // Calculate a route using A* algorithm
+        let route = self.get_route(cost_map, cursor.pos, assignment.cell_id);
+        let Some(actions) = self.route_to_actions(&route) else {
+            return false;
+        };
+
+        // Add a direct route to the patrol car
+        state.try_add_actions(
+            self.board.map,
+            day,
+            assignment.agent_id,
+            assignment.cell_id,
+            actions.clone(),
+        )
     }
 
     fn visited_spot(&self, state: &mut PlanningState, agent_id: usize, spot_id: CellId) {

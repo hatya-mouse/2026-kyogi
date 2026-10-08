@@ -46,7 +46,7 @@ impl TrafficStatus {
 // --- CellId ---
 
 /// An ID that represents the position on the map.
-#[derive(Serialize, Deserialize, Hash, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Serialize, Deserialize, Hash, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct CellId(pub usize);
 
 impl Debug for CellId {

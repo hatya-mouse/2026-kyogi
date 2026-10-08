@@ -18,14 +18,14 @@ struct SpotCandidate {
 #[derive(Debug, Clone)]
 pub(super) struct Assignment {
     pub(super) agent_id: usize,
-    pub(super) spot_id: CellId,
+    pub(super) cell_id: CellId,
 }
 
 impl Assignment {
     fn from_candidate(candidate: SpotCandidate) -> Self {
         Self {
             agent_id: candidate.agent_id,
-            spot_id: candidate.spot_id,
+            cell_id: candidate.spot_id,
         }
     }
 }
