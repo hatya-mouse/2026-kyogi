@@ -1,4 +1,4 @@
-use crate::game::{AgentKind, CellId, DayData};
+use crate::game::{AgentKind, DayData};
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -21,28 +21,15 @@ impl SupplyState {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub(super) struct SupplyAgentCursor {
     /// Supply agent's responsible patrol agents.
     pub assigned_patrols: Vec<usize>,
     /// Index in `assigned_patrols` of the currently processing patrol agent.
     pub current_patrol: Option<usize>,
-    /// Number of steps whose plans are already confirmed.
-    pub fixed_steps: u32,
-    /// Current position of the supply agent.
-    pub pos: CellId,
 }
 
 impl SupplyAgentCursor {
-    pub(super) fn new(pos: CellId) -> Self {
-        Self {
-            assigned_patrols: Vec::new(),
-            current_patrol: None,
-            fixed_steps: 0,
-            pos,
-        }
-    }
-
     /// Advances the current patrol to the next assigned patrol.
     pub(super) fn next_patrol(&mut self) {
         if self.assigned_patrols.is_empty() {
@@ -65,7 +52,7 @@ fn assign_patrols(day: &DayData) -> HashMap<usize, SupplyAgentCursor> {
         .iter()
         .enumerate()
         .filter(|(_, agent)| agent.kind == AgentKind::Supply)
-        .map(|(id, agent)| (id, SupplyAgentCursor::new(agent.pos)))
+        .map(|(id, _)| (id, SupplyAgentCursor::default()))
         .collect();
 
     if !supplies.is_empty() {
