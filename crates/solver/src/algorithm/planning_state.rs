@@ -21,8 +21,8 @@ pub(super) struct PlanningState {
     pub unvisited_brands: HashSet<Brand>,
     /// IDs of the agents assigned as supply cars.
     pub supply_agents: HashSet<usize>,
-    /// Maximum fuel carried by a patrol car.
-    pub fuel_limit: u32,
+    /// Each supply agent's responsible patrol agents.
+    pub responsible_supplies: HashMap<usize, Vec<usize>>,
 }
 
 /// The planned position of the agents, not a server's actual state.
@@ -68,8 +68,11 @@ impl SpotState {
 }
 
 impl PlanningState {
-    pub(super) fn from_day(board: &Board, day: &DayData, fuel_limit: u32) -> Self {
+    pub(super) fn from_day(board: &Board, day: &DayData) -> Self {
         let agent_count = day.agents.len();
+
+        // Pick responsible patrol agents for each supply agent
+        let responsible_supplies = assign_patrols(day);
 
         Self {
             plan: DayPlan::new(agent_count),
@@ -92,7 +95,7 @@ impl PlanningState {
                     (agent.kind == AgentKind::Supply).then_some(agent_id)
                 })
                 .collect(),
-            fuel_limit,
+            responsible_supplies,
         }
     }
 
@@ -169,4 +172,36 @@ impl PlanningState {
             cursor.fixed_steps = day.steps;
         }
     }
+}
+
+fn assign_patrols(day: &DayData) -> HashMap<usize, Vec<usize>> {
+    let mut responsible_supplies: HashMap<usize, Vec<usize>> = day
+        .agents
+        .iter()
+        .enumerate()
+        .filter(|(_, agent)| agent.kind == AgentKind::Supply)
+        .map(|(id, _)| (id, Vec::new()))
+        .collect();
+
+    if !responsible_supplies.is_empty() {
+        let mut patrol_agents: Vec<_> = day
+            .agents
+            .iter()
+            .enumerate()
+            .filter(|(_, agent)| agent.kind == AgentKind::Patrol)
+            .map(|(id, _)| id)
+            .collect();
+        let patrols_per_supply = patrol_agents.len() / responsible_supplies.len();
+
+        for patrols in responsible_supplies.values_mut() {
+            // Take the patrols_per_supply number of patrol agents
+            patrols.extend(
+                patrol_agents
+                    .drain(0..patrols_per_supply)
+                    .collect::<Vec<_>>(),
+            );
+        }
+    }
+
+    responsible_supplies
 }

@@ -11,10 +11,17 @@ pub(crate) struct Board<'a> {
     pub brands: HashMap<Brand, Vec<CellId>>,
     /// Count of agents on the map.
     pub agent_count: usize,
+    /// Maximum fuel carried by a patrol car.
+    pub fuel_limit: u32,
 }
 
 impl<'a> Board<'a> {
-    pub(crate) fn new(map: &'a Map, spots: HashMap<CellId, Spot>, agent_count: usize) -> Self {
+    pub(crate) fn new(
+        map: &'a Map,
+        spots: HashMap<CellId, Spot>,
+        agent_count: usize,
+        fuel_limit: u32,
+    ) -> Self {
         // Collect the brands and spots with the brand
         let brands: HashMap<Brand, Vec<CellId>> = spots
             .values()
@@ -41,6 +48,7 @@ impl<'a> Board<'a> {
             spots,
             brands,
             agent_count,
+            fuel_limit,
         }
     }
 }

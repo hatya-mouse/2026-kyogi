@@ -26,8 +26,6 @@ pub struct Solver<'a> {
     board: Board<'a>,
     /// Adjacent graph for the map.
     adj_graph: AdjGraph,
-    /// Maximum fuel carried by a patrol car.
-    fuel_limit: u32,
 }
 
 impl<'a> Solver<'a> {
@@ -39,16 +37,15 @@ impl<'a> Solver<'a> {
     ) -> Self {
         let adj_graph = AdjGraph::build(map);
         Self {
-            board: Board::new(map, spots, agent_count),
+            board: Board::new(map, spots, agent_count, fuel_limit),
             adj_graph,
-            fuel_limit,
         }
     }
 
     /// Create a solve result for the day.
     pub fn solve_day(&self, day: &DayData) -> DayPlan {
         // Create a planning state and cost map
-        let mut state = PlanningState::from_day(&self.board, day, self.fuel_limit);
+        let mut state = PlanningState::from_day(&self.board, day);
         let cost_map = CostMap::build(self.board.map, day);
 
         let mut rejected_assignments = HashSet::new();
