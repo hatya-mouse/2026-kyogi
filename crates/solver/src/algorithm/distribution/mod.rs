@@ -36,6 +36,7 @@ impl Solver<'_> {
         day: &DayData,
         state: &PlanningState,
         cost_map: &CostMap,
+        rejected_assignments: &HashSet<(usize, CellId)>,
     ) -> Vec<Assignment> {
         let mut candidates = Vec::new();
 
@@ -49,6 +50,10 @@ impl Solver<'_> {
             let cell_steps = self.dijkstra(cost_map, &cursor.pos);
 
             for (spot_id, SpotState { stocks, .. }) in &state.spots {
+                if rejected_assignments.contains(&(agent_id, *spot_id)) {
+                    continue;
+                }
+
                 // 1. Do not assign an agent to the spot it is already occupying
                 if *spot_id == cursor.pos {
                     continue;

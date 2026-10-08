@@ -93,7 +93,6 @@ async fn main() {
     let agents_answer = ApiAgentKindAnswer(agent_kinds);
     if let Err(err) = api.post_agents(&agents_answer).await {
         println_error(format!("Error submitting the agent kind:\n{}", err));
-        return;
     }
     println_info(format!("Submitted the agent kind:\n{:?}", agents_answer));
 
