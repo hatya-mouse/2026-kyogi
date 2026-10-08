@@ -83,19 +83,19 @@ async fn main() {
         tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
     };
 
-    // let supply_count = config
-    //     .supply_count
-    //     .min(initial_data.agents.len().saturating_sub(1));
-    // let mut agent_kinds = vec![AgentKind::Supply; initial_data.agents.len()];
-    // for kind in agent_kinds.iter_mut().skip(supply_count) {
-    //     *kind = AgentKind::Patrol;
-    // }
-    // let agents_answer = ApiAgentKindAnswer(agent_kinds);
-    // if let Err(err) = api.post_agents(&agents_answer).await {
-    //     println_error(format!("Error submitting the agent kind:\n{}", err));
-    //     return;
-    // }
-    // println_info(format!("Submitted the agent kind:\n{:?}", agents_answer));
+    let supply_count = config
+        .supply_count
+        .min(initial_data.agents.len().saturating_sub(1));
+    let mut agent_kinds = vec![AgentKind::Supply; initial_data.agents.len()];
+    for kind in agent_kinds.iter_mut().skip(supply_count) {
+        *kind = AgentKind::Patrol;
+    }
+    let agents_answer = ApiAgentKindAnswer(agent_kinds);
+    if let Err(err) = api.post_agents(&agents_answer).await {
+        println_error(format!("Error submitting the agent kind:\n{}", err));
+        return;
+    }
+    println_info(format!("Submitted the agent kind:\n{:?}", agents_answer));
 
     let starts_at = initial_data.starts_at;
     let day_seconds = initial_data.day_seconds;
