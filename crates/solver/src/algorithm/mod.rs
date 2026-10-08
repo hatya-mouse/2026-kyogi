@@ -12,7 +12,7 @@ use crate::{
     },
     game::{AgentKind, Board, CellId, DayData, DayPlan, Map, Spot},
 };
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 // --- SOVLER ---
 
@@ -38,11 +38,10 @@ impl<'a> Solver<'a> {
         // Create a planning state and cost map
         let mut state = PlanningState::from_day(&self.board, day);
         let cost_map = CostMap::build(self.board.map, day);
-        let mut rejected_assignments = HashSet::new();
 
         loop {
             // Select spots for each agents
-            let assignments = self.distribute_agents(day, &state, &cost_map, &rejected_assignments);
+            let assignments = self.distribute_agents(day, &state, &cost_map);
 
             if assignments.is_empty() || !state.has_remaining(day) {
                 break;
@@ -51,19 +50,17 @@ impl<'a> Solver<'a> {
             let mut added = false;
             for assignment in assignments {
                 if !self.try_add_assignment(&mut state, day, &cost_map, &assignment) {
-                    rejected_assignments.insert((assignment.agent_id, assignment.cell_id));
                     continue;
                 }
 
                 self.visited_spot(&mut state, assignment.agent_id, assignment.cell_id);
-                rejected_assignments.clear();
                 added = true;
                 break;
             }
 
             // If no actions were added, break the loop
             if !added {
-                continue;
+                break;
             }
         }
 
