@@ -1,0 +1,157 @@
+use crate::{
+    algorithm::{CostMap, PlanningState, Solver, supply::SupplyState, utils::get_action_steps},
+    game::{Action, Brand, CellId, DayData},
+};
+
+impl Solver<'_> {
+    pub(super) fn recalculate_after_refills(
+        &self,
+        state: &mut PlanningState,
+        supply_state: &SupplyState,
+        day: &DayData,
+        cost_map: &CostMap,
+    ) {
+        let mut refills = supply_state.refills.clone();
+        refills.sort_unstable_by_key(|refill| refill.step());
+        refills.dedup_by(|left, right| {
+            left.patrol_id() == right.patrol_id() && left.step() == right.step()
+        });
+
+        for refill in refills {
+            self.restore_patrol_state(state, refill.patrol_id(), refill.step());
+            self.truncate_patrol_plan(state, day, refill.patrol_id(), refill.step());
+            self.recalculate_patrol(state, day, cost_map, refill.patrol_id());
+        }
+    }
+
+    fn restore_patrol_state(&self, state: &mut PlanningState, patrol_id: usize, refill_step: u32) {
+        let Some(cursor) = state.cursor.get(patrol_id).cloned() else {
+            return;
+        };
+
+        let removed_spots: Vec<CellId> = cursor
+            .visited_spots
+            .into_iter()
+            .filter(|spot_id| {
+                cursor
+                    .pos_history
+                    .iter()
+                    .enumerate()
+                    .any(|(step, position)| step as u32 > refill_step && *position == *spot_id)
+            })
+            .collect();
+
+        for spot_id in removed_spots {
+            if let Some(spot) = state.spots.get_mut(&spot_id) {
+                spot.stocks = spot.stocks.saturating_add(1);
+            }
+
+            if let Some(cursor) = state.cursor.get_mut(patrol_id) {
+                cursor.visited_spots.remove(&spot_id);
+            }
+        }
+
+        state.unvisited_brands = self.unvisited_brands(state);
+    }
+
+    fn unvisited_brands(&self, state: &PlanningState) -> std::collections::HashSet<Brand> {
+        let visited_brands: std::collections::HashSet<Brand> = state
+            .cursor
+            .iter()
+            .flat_map(|cursor| cursor.visited_spots.iter())
+            .filter_map(|spot_id| state.spots.get(spot_id))
+            .map(|spot| spot.brand)
+            .collect();
+
+        self.board
+            .brands
+            .keys()
+            .filter(|brand| !visited_brands.contains(brand))
+            .copied()
+            .collect()
+    }
+
+    fn truncate_patrol_plan(
+        &self,
+        state: &mut PlanningState,
+        day: &DayData,
+        patrol_id: usize,
+        refill_step: u32,
+    ) {
+        let Some(cursor) = state.cursor.get(patrol_id).cloned() else {
+            return;
+        };
+        let Some(actions) = state.plan.actions.get(patrol_id).cloned() else {
+            return;
+        };
+
+        let mut steps: u32 = 0;
+        let mut position = cursor.pos_history[0];
+        let mut action_count = 0;
+
+        for action in actions {
+            let mut action_cursor = cursor.clone();
+            action_cursor.pos = position;
+            let action_steps = get_action_steps(self.board.map, day, &action_cursor, &action);
+            if steps.saturating_add(action_steps) > refill_step {
+                break;
+            }
+
+            if let Action::Move(direction) = action {
+                let coord = self.board.map.get_coord_from_id(position);
+                position = self
+                    .board
+                    .map
+                    .get_id_from_coord(direction.apply_to_coord(coord));
+            }
+
+            steps += action_steps;
+            action_count += 1;
+        }
+
+        if let Some(actions) = state.plan.actions.get_mut(patrol_id) {
+            actions.truncate(action_count);
+        }
+
+        if let Some(cursor) = state.cursor.get_mut(patrol_id) {
+            cursor.fixed_steps = steps;
+            cursor.fuel = self.board.fuel_limits;
+            cursor.pos_history.truncate(steps as usize + 1);
+            if let Some(&position) = cursor.pos_history.last() {
+                cursor.pos = position;
+            }
+        }
+    }
+
+    fn recalculate_patrol(
+        &self,
+        state: &mut PlanningState,
+        day: &DayData,
+        cost_map: &CostMap,
+        patrol_id: usize,
+    ) {
+        loop {
+            let assignments = self.distribute_agents(day, state, cost_map);
+
+            let mut added = false;
+            for assignment in assignments {
+                if assignment.agent_id != patrol_id {
+                    continue;
+                }
+                if !self.try_add_assignment(state, day, cost_map, &assignment) {
+                    continue;
+                }
+
+                self.visited_spot(state, patrol_id, assignment.cell_id);
+                added = true;
+                break;
+            }
+
+            if !added {
+                break;
+            }
+        }
+
+        state.fill_remaining_waits(day, patrol_id);
+    }
+}

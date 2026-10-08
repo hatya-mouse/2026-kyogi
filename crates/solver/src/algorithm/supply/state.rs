@@ -25,15 +25,23 @@ pub(in crate::algorithm) struct SupplyAgentCursor {
     pub assigned_patrols: Vec<usize>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub(in crate::algorithm) struct RefillEvent {
-    patrol_id: usize,
-    step: u32,
+    pub(super) patrol_id: usize,
+    pub(super) step: u32,
 }
 
 impl RefillEvent {
     pub(super) fn new(patrol_id: usize, step: u32) -> Self {
         Self { patrol_id, step }
+    }
+
+    pub(in crate::algorithm) fn patrol_id(&self) -> usize {
+        self.patrol_id
+    }
+
+    pub(in crate::algorithm) fn step(&self) -> u32 {
+        self.step
     }
 }
 

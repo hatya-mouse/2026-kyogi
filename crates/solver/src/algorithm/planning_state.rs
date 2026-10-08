@@ -69,6 +69,7 @@ impl SpotState {
 }
 
 impl PlanningState {
+    /// Creates a new planning state from day data.
     pub(super) fn from_day(board: &Board, day: &DayData) -> Self {
         let agent_count = day.agents.len();
 

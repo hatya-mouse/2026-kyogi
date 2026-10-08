@@ -2,6 +2,7 @@ mod cost_map;
 mod distribution;
 mod graph;
 mod planning_state;
+mod recalculation;
 mod route;
 mod supply;
 mod utils;
@@ -26,10 +27,15 @@ pub struct Solver<'a> {
 }
 
 impl<'a> Solver<'a> {
-    pub fn new(map: &'a Map, spots: HashMap<CellId, Spot>, agent_count: usize) -> Self {
+    pub fn new(
+        map: &'a Map,
+        spots: HashMap<CellId, Spot>,
+        agent_count: usize,
+        fuel_limits: u32,
+    ) -> Self {
         let adj_graph = AdjGraph::build(map);
         Self {
-            board: Board::new(map, spots, agent_count),
+            board: Board::new(map, spots, agent_count, fuel_limits),
             adj_graph,
         }
     }
@@ -81,6 +87,7 @@ impl<'a> Solver<'a> {
         self.build_supply_plan(&mut state, &mut supply_state, day, &cost_map);
 
         // Recalculate the route after refills
+        self.recalculate_after_refills(&mut state, &supply_state, day, &cost_map);
 
         // Fill the remaining for supply agents
         for agent_id in day
