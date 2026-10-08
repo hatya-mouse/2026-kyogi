@@ -1,7 +1,6 @@
 mod cost_map;
 mod distribution;
 mod graph;
-mod partial;
 mod planning_state;
 mod route;
 mod supply;
@@ -81,7 +80,6 @@ impl<'a> Solver<'a> {
             .filter(|(_, agent)| agent.kind == AgentKind::Patrol)
             .map(|(id, _)| id)
         {
-            self.add_partial_movements(&mut state, day, &cost_map, agent_id);
             state.fill_remaining_waits(day, agent_id);
         }
 
