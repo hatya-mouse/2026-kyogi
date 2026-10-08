@@ -94,8 +94,11 @@ impl Solver<'_> {
         // Limit the number of same spots
         limit_candidates_by_stock(state, &mut candidates);
 
-        // Take top candidates and return them
-        take_top_candidates(candidates, self.board.agent_count)
+        // Take all candidates so failed assignments can fall back to the next spot
+        candidates
+            .into_iter()
+            .map(Assignment::from_candidate)
+            .collect()
     }
 }
 
@@ -165,22 +168,4 @@ fn prioritize_candidates(state: &PlanningState, candidates: &mut [SpotCandidate]
             candidate.steps,
         )
     });
-}
-
-/// Take the top candidates for each agent and convert them to assignments.
-fn take_top_candidates(candidates: Vec<SpotCandidate>, agent_count: usize) -> Vec<Assignment> {
-    let mut assignments = Vec::new();
-    let mut unassigned_agents: HashSet<usize> = (0..agent_count).collect();
-
-    for candidate in candidates {
-        if unassigned_agents.remove(&candidate.agent_id) {
-            assignments.push(Assignment::from_candidate(candidate));
-        }
-
-        if unassigned_agents.is_empty() {
-            break;
-        }
-    }
-
-    assignments
 }

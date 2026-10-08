@@ -148,10 +148,11 @@ impl PlanningState {
             action_steps += steps;
         }
 
-        if cursor.fixed_steps.saturating_add(action_steps) > day.steps
-            || fuel_used > cursor.fuel
-            || next_cursor.pos != destination
-        {
+        let exceeds_day_steps = cursor.fixed_steps.saturating_add(action_steps) > day.steps;
+        let exceeds_fuel = fuel_used > cursor.fuel;
+        let reaches_destination = next_cursor.pos == destination;
+
+        if exceeds_day_steps || exceeds_fuel || !reaches_destination {
             return false;
         }
 
