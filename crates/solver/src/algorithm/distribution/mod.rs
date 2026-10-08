@@ -1,4 +1,4 @@
-//! Distribute agents using a simple greedy ranking of reachable spots.
+//! Distribute agents using a simple ranking of reachable spots.
 
 mod dijkstra;
 
@@ -133,16 +133,38 @@ fn limit_candidates_by_stock(state: &PlanningState, candidates: &mut Vec<SpotCan
     }
 }
 
-/// Prioritizes unvisited brands and candidates that are close to becoming unreachable.
+/// Prioritizes scarce unvisited brands and candidates that are close to becoming unreachable.
 fn prioritize_candidates(state: &PlanningState, candidates: &mut [SpotCandidate]) {
     const URGENCY_MARGIN: u32 = 5;
+    let mut brand_agents = HashMap::new();
+
+    for candidate in candidates.iter() {
+        let Some(spot) = state.spots.get(&candidate.spot_id) else {
+            continue;
+        };
+        if !state.unvisited_brands.contains(&spot.brand) {
+            continue;
+        }
+
+        brand_agents
+            .entry(spot.brand)
+            .or_insert_with(HashSet::new)
+            .insert(candidate.agent_id);
+    }
 
     candidates.sort_unstable_by_key(|candidate| {
         let Some(spot) = state.spots.get(&candidate.spot_id) else {
-            return (true, true, candidate.steps);
+            return (true, usize::MAX, true, candidate.steps);
         };
+
+        let is_visited = !state.unvisited_brands.contains(&spot.brand);
+        let available_agents = brand_agents
+            .get(&spot.brand)
+            .map_or(usize::MAX, HashSet::len);
+
         (
-            !state.unvisited_brands.contains(&spot.brand),
+            is_visited,
+            available_agents,
             candidate.slack > URGENCY_MARGIN,
             candidate.steps,
         )
