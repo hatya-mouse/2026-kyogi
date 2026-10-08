@@ -8,7 +8,8 @@ mod utils;
 
 use crate::{
     algorithm::{
-        cost_map::CostMap, distribution::Assignment, graph::AdjGraph, planning_state::PlanningState,
+        cost_map::CostMap, distribution::Assignment, graph::AdjGraph,
+        planning_state::PlanningState, supply::SupplyState,
     },
     game::{AgentKind, Board, CellId, DayData, DayPlan, Map, Spot},
 };
@@ -76,7 +77,10 @@ impl<'a> Solver<'a> {
         }
 
         // Generate plan for supply agents
-        self.build_supply_plan(&mut state, day, &cost_map);
+        let mut supply_state = SupplyState::new(day);
+        self.build_supply_plan(&mut state, &mut supply_state, day, &cost_map);
+
+        // Recalculate the route after refills
 
         // Fill the remaining for supply agents
         for agent_id in day

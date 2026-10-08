@@ -2,23 +2,39 @@ use crate::game::{AgentKind, DayData};
 use std::collections::HashMap;
 
 #[derive(Debug)]
-pub(super) struct SupplyState {
+pub(in crate::algorithm) struct SupplyState {
     /// Each supply agent's responsible patrol agents.
     pub supplies: HashMap<usize, SupplyAgentCursor>,
+    /// Refill events happend in the day.
+    pub refills: Vec<RefillEvent>,
 }
 
 impl SupplyState {
-    pub(super) fn new(day: &DayData) -> Self {
+    /// Assigns patrol agents to supply agents and creates a new supply state
+    pub(in crate::algorithm) fn new(day: &DayData) -> Self {
         Self {
             supplies: assign_patrols(day),
+            refills: Vec::new(),
         }
     }
 }
 
 #[derive(Debug, Default)]
-pub(super) struct SupplyAgentCursor {
+pub(in crate::algorithm) struct SupplyAgentCursor {
     /// Supply agent's responsible patrol agents.
     pub assigned_patrols: Vec<usize>,
+}
+
+#[derive(Debug, Default)]
+pub(in crate::algorithm) struct RefillEvent {
+    patrol_id: usize,
+    step: u32,
+}
+
+impl RefillEvent {
+    pub(super) fn new(patrol_id: usize, step: u32) -> Self {
+        Self { patrol_id, step }
+    }
 }
 
 /// Assign patrol agents to supply agents and returns new supply agent state.

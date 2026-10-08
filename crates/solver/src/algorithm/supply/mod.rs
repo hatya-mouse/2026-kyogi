@@ -1,7 +1,9 @@
 mod state;
 
+pub(super) use state::{RefillEvent, SupplyState};
+
 use crate::{
-    algorithm::{CostMap, PlanningState, Solver, supply::state::SupplyState},
+    algorithm::{CostMap, PlanningState, Solver},
     game::{Action, CellId, DayData},
 };
 use std::num::NonZeroU32;
@@ -15,11 +17,10 @@ impl Solver<'_> {
     pub(super) fn build_supply_plan(
         &self,
         state: &mut PlanningState,
+        supply_state: &mut SupplyState,
         day: &DayData,
         cost_map: &CostMap,
     ) {
-        let mut supply_state = SupplyState::new(day);
-
         loop {
             let mut added = false;
 
@@ -94,6 +95,13 @@ impl Solver<'_> {
                         } else {
                             false
                         };
+
+                        if route_added || wait_added {
+                            supply_state.refills.push(RefillEvent::new(
+                                assigned_patrol,
+                                randezvous_spot.patrol_arrival_steps,
+                            ));
+                        }
 
                         added |= (route_has_actions && route_added) || wait_added;
                     }
