@@ -1,6 +1,7 @@
 use crate::game::{AgentKind, CellId, DayData};
 use std::collections::HashMap;
 
+#[derive(Debug)]
 pub(super) struct SupplyState {
     /// Each supply agent's responsible patrol agents.
     pub supplies: HashMap<usize, SupplyAgentCursor>,
@@ -12,8 +13,15 @@ impl SupplyState {
             supplies: assign_patrols(day),
         }
     }
+
+    pub(super) fn reset_current_patrols(&mut self) {
+        for supply in self.supplies.values_mut() {
+            supply.current_patrol = supply.assigned_patrols.first().copied();
+        }
+    }
 }
 
+#[derive(Debug)]
 pub(super) struct SupplyAgentCursor {
     /// Supply agent's responsible patrol agents.
     pub assigned_patrols: Vec<usize>,

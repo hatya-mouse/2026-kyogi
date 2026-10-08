@@ -13,6 +13,7 @@ impl Solver<'_> {
         cost_map: &CostMap,
     ) {
         let mut supply_state = SupplyState::new(day);
+        supply_state.reset_current_patrols();
 
         loop {
             let mut added = false;
