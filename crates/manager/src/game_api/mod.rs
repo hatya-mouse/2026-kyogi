@@ -6,9 +6,9 @@ mod error;
 mod init_data;
 
 pub(super) use answer::{ApiActionPlanAnswer, ApiAgentKindAnswer, PostPlanResponse};
-pub(super) use day_data::{ApiDayData, ApiOtherAgentsData, ApiTrafficData};
+pub(super) use day_data::ApiDayData;
 pub(super) use error::ApiError;
-pub(super) use init_data::{ApiInitialData, ApiMap, ApiSpot};
+pub(super) use init_data::ApiInitialData;
 
 pub(super) struct Api {
     /// Client to send request to the server.

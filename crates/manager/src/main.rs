@@ -116,12 +116,7 @@ async fn main() {
             )
         })
         .collect();
-    let solver = Solver::new(
-        &map,
-        spots,
-        initial_data.agents.len(),
-        initial_data.fuel_limits,
-    );
+    let solver = Solver::new(&map, spots, initial_data.agents.len());
     let day_steps = initial_data.day_steps;
 
     wait_until(starts_at).await;
@@ -173,10 +168,13 @@ async fn main() {
         if cli.verbose {
             println_info(format!("Generated a plan for day {}:", day_data.day));
 
-            for (agent_id, agent_actions) in plan.actions.iter().enumerate() {
+            for (agent_id, (agent_actions, agent)) in
+                plan.actions.iter().zip(day_data.agents.iter()).enumerate()
+            {
                 println!(
-                    "- Agent {}: {:?}",
+                    "- Agent {} ({}): {:?}",
                     agent_id,
+                    agent.kind,
                     serde_json::to_string(agent_actions).unwrap_or("could not show".to_string())
                 );
             }

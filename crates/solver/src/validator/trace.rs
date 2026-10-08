@@ -74,7 +74,7 @@ pub(super) fn build_trace(
     }
 
     Ok(AgentTrace {
-        kind: agent.kind.clone(),
+        kind: agent.kind,
         initial_fuel: agent.fuel,
         positions,
         moves,

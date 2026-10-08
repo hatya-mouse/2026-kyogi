@@ -63,10 +63,8 @@ impl Solver<'_> {
                             continue;
                         };
 
-                        // Does not accept empty array since it can create an infinite loop
-                        if actions.is_empty() {
-                            continue;
-                        }
+                        // Do not count as "added" if the route has no actions
+                        let route_has_actions = !actions.is_empty();
 
                         // Add a direct route to the rendezvous spot
                         let route_added = state.try_add_actions(
@@ -97,7 +95,7 @@ impl Solver<'_> {
                             false
                         };
 
-                        added |= route_added || wait_added;
+                        added |= (route_has_actions && route_added) || wait_added;
                     }
                 }
             }

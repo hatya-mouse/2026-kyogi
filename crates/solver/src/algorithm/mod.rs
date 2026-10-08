@@ -25,15 +25,10 @@ pub struct Solver<'a> {
 }
 
 impl<'a> Solver<'a> {
-    pub fn new(
-        map: &'a Map,
-        spots: HashMap<CellId, Spot>,
-        agent_count: usize,
-        fuel_limit: u32,
-    ) -> Self {
+    pub fn new(map: &'a Map, spots: HashMap<CellId, Spot>, agent_count: usize) -> Self {
         let adj_graph = AdjGraph::build(map);
         Self {
-            board: Board::new(map, spots, agent_count, fuel_limit),
+            board: Board::new(map, spots, agent_count),
             adj_graph,
         }
     }
