@@ -160,12 +160,8 @@ fn prioritize_candidates(state: &PlanningState, candidates: &mut [SpotCandidate]
         let available_agents = brand_agents
             .get(&spot.brand)
             .map_or(usize::MAX, HashSet::len);
+        let urgency = !is_visited && candidate.slack > URGENCY_MARGIN;
 
-        (
-            is_visited,
-            available_agents,
-            candidate.slack > URGENCY_MARGIN,
-            candidate.steps,
-        )
+        (is_visited, available_agents, urgency, candidate.steps)
     });
 }
