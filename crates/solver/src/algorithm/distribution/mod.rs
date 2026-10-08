@@ -36,7 +36,6 @@ impl Solver<'_> {
         day: &DayData,
         state: &PlanningState,
         cost_map: &CostMap,
-        rejected_assignments: &HashSet<(usize, CellId)>,
     ) -> Vec<Assignment> {
         let mut candidates = Vec::new();
 
@@ -50,9 +49,6 @@ impl Solver<'_> {
             let cell_steps = self.dijkstra(cost_map, &cursor.pos);
 
             for (spot_id, SpotState { stocks, .. }) in &state.spots {
-                if rejected_assignments.contains(&(agent_id, *spot_id)) {
-                    continue;
-                }
                 // 1. Do not assign an agent to the spot it is already occupying
                 if *spot_id == cursor.pos {
                     continue;
@@ -92,11 +88,11 @@ impl Solver<'_> {
             }
         }
 
-        // Limit the number of same spots
-        limit_candidates_by_stock(state, &mut candidates);
-
         // Prioritize unvisited and hard-to-reach brands
         prioritize_candidates(state, &mut candidates);
+
+        // Limit the number of same spots
+        limit_candidates_by_stock(state, &mut candidates);
 
         // Take top candidates and return them
         take_top_candidates(candidates, self.board.agent_count)

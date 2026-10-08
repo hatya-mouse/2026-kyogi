@@ -12,7 +12,7 @@ use crate::{
     },
     game::{AgentKind, Board, CellId, DayData, DayPlan, Map, Spot},
 };
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 // --- SOVLER ---
 
@@ -33,16 +33,15 @@ impl<'a> Solver<'a> {
         }
     }
 
-    /// Create a solve result for the day.
+    /// Creates a solve result for the day.
     pub fn solve_day(&self, day: &DayData) -> DayPlan {
         // Create a planning state and cost map
         let mut state = PlanningState::from_day(&self.board, day);
         let cost_map = CostMap::build(self.board.map, day);
 
-        let mut rejected_assignments = HashSet::new();
         loop {
             // Select spots for each agents
-            let assignments = self.distribute_agents(day, &state, &cost_map, &rejected_assignments);
+            let assignments = self.distribute_agents(day, &state, &cost_map);
 
             if assignments.is_empty() || !state.has_remaining(day) {
                 break;
@@ -51,13 +50,11 @@ impl<'a> Solver<'a> {
             let mut added = false;
             for assignment in assignments {
                 if !self.try_add_assignment(&mut state, day, &cost_map, &assignment) {
-                    rejected_assignments.insert((assignment.agent_id, assignment.cell_id));
                     continue;
                 }
 
                 self.visited_spot(&mut state, assignment.agent_id, assignment.cell_id);
                 added = true;
-                rejected_assignments.clear();
                 break;
             }
 
@@ -95,7 +92,7 @@ impl<'a> Solver<'a> {
         state.plan
     }
 
-    /// Tries to add a direct route or a synchronized supply route
+    /// Tries to add a direct route or a synchronized supply route.
     fn try_add_assignment(
         &self,
         state: &mut PlanningState,
