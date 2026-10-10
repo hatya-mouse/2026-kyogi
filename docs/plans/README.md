@@ -20,6 +20,6 @@ Execute one phase at a time. Compare variants on identical inputs, in official o
 
 ## Current implementation observations
 
-`crates/solver/src/algorithm/distribution/mod.rs` builds agent/spot candidates, sorts them by heuristics, caps candidates by stock, then repeatedly accepts the first assignment executable by `try_add_assignment`. It regenerates candidates after successful state updates. Candidate ranking uses travel steps and brand urgency/representatives; fuel feasibility is not a candidate filter. `crates/solver/src/algorithm/supply/state.rs` partitions patrols among supply cars by count, with leftovers going to the last supply car.
+`crates/solver/src/algorithm/distribution/mod.rs` builds agent/spot candidates, uses stock-aware maximum matching to reserve daily distinct-brand opportunities, then repeatedly accepts a feasible assignment and regenerates candidates after state changes. Phase 3 adds cached A*-route step/fuel estimates, fixed-step-aware feasibility and slack, plus bounded one-stop follow-up scoring. Supply-agent grouping in `crates/solver/src/algorithm/supply/state.rs` remains count-based and is deliberately out of scope.
 
-The recent match log shows some patrol plans with no meaningful route, but does not prove those agents had useful feasible work available. Phase 1 should establish reasons before inferring under-utilization.
+Unit and integration tests cover synthetic allocation cases, and the fixed-runtime validation remains outstanding because its documented runner is absent from this checkout. The recent match log shows patrols with no meaningful route, but does not prove those agents had useful feasible work available; no official score improvement is claimed without reproducible multi-day inputs and comparison.

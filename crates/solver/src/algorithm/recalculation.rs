@@ -1,5 +1,8 @@
 use crate::{
-    algorithm::{CostMap, PlanningState, Solver, supply::SupplyState, utils::get_action_steps},
+    algorithm::{
+        CostMap, PlanningState, Solver, distribution::RouteCostCache, supply::SupplyState,
+        utils::get_action_steps,
+    },
     game::{Action, Brand, CellId, DayData},
 };
 use std::collections::HashSet;
@@ -11,6 +14,7 @@ impl Solver<'_> {
         supply_state: &SupplyState,
         day: &DayData,
         cost_map: &CostMap,
+        route_costs: &mut RouteCostCache,
     ) {
         let mut refills = supply_state.refills.clone();
         refills.sort_unstable_by_key(|refill| refill.step);
@@ -26,7 +30,7 @@ impl Solver<'_> {
             {
                 continue;
             }
-            self.recalculate_patrol(state, day, cost_map, refill.patrol_id);
+            self.recalculate_patrol(state, day, cost_map, refill.patrol_id, route_costs);
         }
     }
 
@@ -142,11 +146,18 @@ impl Solver<'_> {
         day: &DayData,
         cost_map: &CostMap,
         patrol_id: usize,
+        route_costs: &mut RouteCostCache,
     ) {
         let mut excluded_assignments = HashSet::new();
         loop {
-            let assignments =
-                self.distribute_patrol(day, state, cost_map, patrol_id, &excluded_assignments);
+            let assignments = self.distribute_patrol(
+                day,
+                state,
+                cost_map,
+                patrol_id,
+                &excluded_assignments,
+                route_costs,
+            );
 
             let mut added = false;
             let mut failed = false;

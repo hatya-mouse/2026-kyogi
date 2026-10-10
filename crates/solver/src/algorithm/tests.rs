@@ -1,4 +1,4 @@
-use super::Solver;
+use super::{CostMap, PlanningState, Solver, distribution::RouteCostCache};
 use crate::{
     game::{Agent, AgentKind, Brand, CellId, CellType, DayData, Map, Spot, TrafficStatus},
     validator::validate_day_plan,
@@ -114,4 +114,146 @@ fn baseline_fixture_is_deterministic_and_valid() {
     );
     assert!(validate_day_plan(&map, &day, &first, 8).is_empty());
     assert!(validate_day_plan(&map, &day, &second, 8).is_empty());
+}
+
+#[test]
+fn candidate_arrival_includes_existing_fixed_steps() {
+    let map = Map::new((2, 1), vec![CellType::Plain, CellType::Plain]);
+    let spots = HashMap::from([(CellId(1), Spot::new(Brand::new(10), 1))]);
+    let day = DayData {
+        day: 0,
+        steps: 5,
+        agents: vec![Agent {
+            kind: AgentKind::Patrol,
+            pos: CellId(0),
+            fuel: 8,
+        }],
+        traffics: HashMap::new(),
+    };
+    let solver = Solver::new(&map, spots, day.agents.len(), 8);
+    let mut state = PlanningState::from_day(&solver.board, &day);
+    state.cursor[0].fixed_steps = 4;
+    let cost_map = CostMap::build(solver.board.map, &day);
+    let assignments = solver.distribute_agents_excluding(
+        &day,
+        &state,
+        &cost_map,
+        &std::collections::HashSet::new(),
+        &mut RouteCostCache::default(),
+    );
+
+    assert!(assignments.is_empty());
+}
+
+#[test]
+fn follow_up_respects_remaining_steps_fuel_stock_and_daily_brands() {
+    let map = Map::new(
+        (3, 1),
+        vec![CellType::Plain, CellType::Plain, CellType::Plain],
+    );
+    let spots = HashMap::from([
+        (CellId(1), Spot::new(Brand::new(10), 1)),
+        (CellId(2), Spot::new(Brand::new(20), 1)),
+    ]);
+    let day = DayData {
+        day: 0,
+        steps: 8,
+        agents: vec![Agent {
+            kind: AgentKind::Patrol,
+            pos: CellId(0),
+            fuel: 8,
+        }],
+        traffics: HashMap::new(),
+    };
+    let solver = Solver::new(&map, spots, day.agents.len(), 8);
+    let state = PlanningState::from_day(&solver.board, &day);
+    let cost_map = CostMap::build(solver.board.map, &day);
+    let mut cache = RouteCostCache::default();
+    let no_visited_spots = std::collections::HashSet::new();
+
+    let feasible = solver.follow_up_value(
+        &day,
+        &cost_map,
+        &mut cache,
+        CellId(1),
+        2,
+        1,
+        &state.spots,
+        &no_visited_spots,
+        &state.unvisited_brands,
+    );
+    assert!(feasible.collection);
+    assert!(feasible.new_brand);
+
+    let too_little_time = solver.follow_up_value(
+        &day,
+        &cost_map,
+        &mut cache,
+        CellId(1),
+        1,
+        1,
+        &state.spots,
+        &no_visited_spots,
+        &state.unvisited_brands,
+    );
+    assert!(!too_little_time.collection);
+
+    let too_little_fuel = solver.follow_up_value(
+        &day,
+        &cost_map,
+        &mut cache,
+        CellId(1),
+        2,
+        0,
+        &state.spots,
+        &no_visited_spots,
+        &state.unvisited_brands,
+    );
+    assert!(!too_little_fuel.collection);
+
+    let mut exhausted_stock = state.spots.clone();
+    exhausted_stock.get_mut(&CellId(2)).unwrap().stocks = 0;
+    let no_stock = solver.follow_up_value(
+        &day,
+        &cost_map,
+        &mut cache,
+        CellId(1),
+        2,
+        1,
+        &exhausted_stock,
+        &no_visited_spots,
+        &state.unvisited_brands,
+    );
+    assert!(!no_stock.collection);
+
+    let mut already_visited = std::collections::HashSet::new();
+    already_visited.insert(CellId(2));
+    let visited = solver.follow_up_value(
+        &day,
+        &cost_map,
+        &mut cache,
+        CellId(1),
+        2,
+        1,
+        &state.spots,
+        &already_visited,
+        &state.unvisited_brands,
+    );
+    assert!(!visited.collection);
+
+    let mut brands_already_collected = state.unvisited_brands.clone();
+    brands_already_collected.remove(&Brand::new(20));
+    let no_new_daily_brand = solver.follow_up_value(
+        &day,
+        &cost_map,
+        &mut cache,
+        CellId(1),
+        2,
+        1,
+        &state.spots,
+        &no_visited_spots,
+        &brands_already_collected,
+    );
+    assert!(no_new_daily_brand.collection);
+    assert!(!no_new_daily_brand.new_brand);
 }

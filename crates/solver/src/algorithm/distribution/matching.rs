@@ -93,6 +93,9 @@ fn maximum_stock_aware_matching(
                     spot_id: candidate.spot_id,
                     steps: candidate.steps,
                     slack: candidate.slack,
+                    fuel: candidate.fuel,
+                    lookahead_brand: candidate.lookahead_brand,
+                    lookahead_collection: candidate.lookahead_collection,
                 })
         })
         .collect()
@@ -115,25 +118,33 @@ fn candidate_brand_id(state: &PlanningState, spot_id: crate::game::CellId) -> i6
     state.spots[&spot_id].brand.id()
 }
 
-fn candidate_cost_key(candidate: &SpotCandidate) -> (u32, u32, usize, crate::game::CellId) {
+fn candidate_cost_key(
+    candidate: &SpotCandidate,
+) -> (bool, bool, u32, u32, u32, usize, crate::game::CellId) {
     (
+        !candidate.lookahead_brand,
+        !candidate.lookahead_collection,
         candidate.steps,
-        candidate.slack,
+        candidate.fuel,
+        u32::MAX.saturating_sub(candidate.slack),
         candidate.agent_id,
         candidate.spot_id,
     )
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
-struct LexCost([i64; 4]);
+struct LexCost([i64; 7]);
 
 impl LexCost {
-    const ZERO: Self = Self([0; 4]);
+    const ZERO: Self = Self([0; 7]);
 
     fn candidate(candidate: &SpotCandidate) -> Self {
         Self([
+            i64::from(!candidate.lookahead_brand),
+            i64::from(!candidate.lookahead_collection),
             i64::from(candidate.steps),
-            i64::from(candidate.slack),
+            i64::from(candidate.fuel),
+            i64::from(u32::MAX.saturating_sub(candidate.slack)),
             candidate.agent_id as i64,
             candidate.spot_id.as_usize() as i64,
         ])
@@ -254,9 +265,12 @@ mod tests {
         let mut graph = FlowGraph::new(sink + 1);
         graph.add_edge(0, agents[&0], 1, LexCost::ZERO);
         graph.add_edge(0, agents[&1], 1, LexCost::ZERO);
-        let flexible_common = graph.add_edge(agents[&0], spots[&10], 1, LexCost([1, 0, 0, 10]));
-        let flexible_unique = graph.add_edge(agents[&0], spots[&20], 1, LexCost([5, 0, 0, 20]));
-        let constrained_common = graph.add_edge(agents[&1], spots[&10], 1, LexCost([2, 0, 1, 10]));
+        let flexible_common =
+            graph.add_edge(agents[&0], spots[&10], 1, LexCost([1, 0, 0, 0, 0, 0, 10]));
+        let flexible_unique =
+            graph.add_edge(agents[&0], spots[&20], 1, LexCost([5, 0, 0, 0, 0, 0, 20]));
+        let constrained_common =
+            graph.add_edge(agents[&1], spots[&10], 1, LexCost([2, 0, 1, 0, 0, 1, 10]));
         graph.add_edge(spots[&10], brands[&100], 1, LexCost::ZERO);
         graph.add_edge(spots[&20], brands[&200], 1, LexCost::ZERO);
         graph.add_edge(brands[&100], sink, 1, LexCost::ZERO);

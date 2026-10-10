@@ -33,3 +33,24 @@ Only after patrol assignment improvements are measured, evaluate `assign_patrols
 - Supply-assignment changes are evaluated separately from patrol target selection.
 - The strategy improves or preserves official lexicographic score across the regression corpus without increasing invalid plans.
 - Record runtime and planning behaviour; avoid heavier optimization if marginal score gains do not justify added complexity.
+
+## Implementation status
+
+Implemented in the patrol assignment path:
+
+- Cache route-step and patrol-fuel estimates per origin/destination using the existing A* route and the planner's movement terrain costs. Do not assume refills before supply planning.
+- Exclude candidates when that existing A* route exceeds current fuel or when `fixed_steps + route_steps` exceeds the day. Compute slack from the actual arrival step; final action insertion and plan validation remain authoritative.
+- Add bounded one-stop follow-up evaluation. Rank feasible next stops that add a still-uncollected daily brand above other feasible collections, then use feasible follow-up work as a lower-priority signal. Rebuild candidate values on each planning iteration as stock and daily brand state change.
+- Preserve maximum distinct-brand matching before applying follow-up, route effort, fuel, and deterministic tie-break costs. Supply-agent grouping and A* itself are unchanged.
+- Add unit and integration coverage for fuel-infeasible routes, fixed-step arrival, follow-up step/fuel/stock/visited-spot constraints, daily marginal brand value, and a valid lookahead-selected plan.
+
+Validation run in WSL on the current worktree:
+
+- `cargo fmt --all -- --check` passed.
+- `cargo test -p solver` passed: 7 unit tests and 2 integration tests.
+- `cargo check --workspace` passed.
+- `git diff --check` passed.
+
+The documented fixed-runtime corpus could not be run: `scripts/validate_fixed_runtime.py` is absent from this checkout (the README refers to it), and the attempted `python` command is not installed; `python3` is available, but the script is still missing. No before/after multi-day score or runtime comparison has therefore been measured, and this implementation is not yet demonstrated to improve or preserve competition scores across the regression corpus. The checked-in finals fixtures also do not include later-day statuses.
+
+Fuel feasibility is currently measured on the single route returned by the unchanged step-oriented A*. A different, slower route could theoretically use less fuel; in that case this filter is conservative relative to the existing route generator, not a proof that no physical route can reach the candidate. Supporting such alternatives would require route-selection changes and remains outside this phase's scope. No future refill is presumed, and final route/action feasibility checks are retained.

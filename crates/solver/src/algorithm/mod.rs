@@ -13,8 +13,12 @@ mod tests;
 
 use crate::{
     algorithm::{
-        cost_map::CostMap, diagnostics::AllocationDiagnostics, distribution::Assignment,
-        graph::AdjGraph, planning_state::PlanningState, supply::SupplyState,
+        cost_map::CostMap,
+        diagnostics::AllocationDiagnostics,
+        distribution::{Assignment, RouteCostCache},
+        graph::AdjGraph,
+        planning_state::PlanningState,
+        supply::SupplyState,
     },
     game::{AgentKind, Board, CellId, DayData, DayPlan, Map, Spot},
 };
@@ -55,6 +59,7 @@ impl<'a> Solver<'a> {
     pub fn solve_day(&self, day: &DayData) -> DayPlan {
         let mut state = PlanningState::from_day(&self.board, day);
         let cost_map = CostMap::build(self.board.map, day);
+        let mut route_costs = RouteCostCache::default();
         let diagnostics_enabled = std::env::var_os("SOLVER_DISTRIBUTION_DIAGNOSTICS").is_some();
         let mut diagnostics = AllocationDiagnostics::default();
         let mut excluded_assignments = std::collections::HashSet::new();
@@ -66,10 +71,17 @@ impl<'a> Solver<'a> {
                     &state,
                     &cost_map,
                     &excluded_assignments,
+                    &mut route_costs,
                 )
             } else {
                 (
-                    self.distribute_agents_excluding(day, &state, &cost_map, &excluded_assignments),
+                    self.distribute_agents_excluding(
+                        day,
+                        &state,
+                        &cost_map,
+                        &excluded_assignments,
+                        &mut route_costs,
+                    ),
                     Vec::new(),
                 )
             };
@@ -172,7 +184,7 @@ impl<'a> Solver<'a> {
 
         let mut supply_state = SupplyState::new(day);
         self.build_supply_plan(&mut state, &mut supply_state, day, &cost_map);
-        self.recalculate_after_refills(&mut state, &supply_state, day, &cost_map);
+        self.recalculate_after_refills(&mut state, &supply_state, day, &cost_map, &mut route_costs);
 
         for agent_id in day
             .agents
