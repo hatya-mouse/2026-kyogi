@@ -68,6 +68,13 @@ impl SpotState {
     }
 }
 
+pub(super) enum ActionInsertResult {
+    Added,
+    StepRejected,
+    FuelRejected,
+    Invalid,
+}
+
 impl PlanningState {
     /// Creates a new planning state from day data.
     pub(super) fn from_day(board: &Board, day: &DayData) -> Self {
@@ -116,11 +123,25 @@ impl PlanningState {
         destination: CellId,
         actions: Vec<Action>,
     ) -> bool {
+        matches!(
+            self.try_add_actions_detailed(map, day, agent_id, destination, actions),
+            ActionInsertResult::Added
+        )
+    }
+
+    pub(super) fn try_add_actions_detailed(
+        &mut self,
+        map: &Map,
+        day: &DayData,
+        agent_id: usize,
+        destination: CellId,
+        actions: Vec<Action>,
+    ) -> ActionInsertResult {
         let Some(cursor) = self.cursor.get_mut(agent_id) else {
-            return false;
+            return ActionInsertResult::Invalid;
         };
         let Some(agent) = day.agents.get(agent_id) else {
-            return false;
+            return ActionInsertResult::Invalid;
         };
         let mut next_cursor = cursor.clone();
         let mut fuel_used: u32 = 0;
@@ -153,8 +174,14 @@ impl PlanningState {
         let exceeds_fuel = fuel_used > cursor.fuel;
         let reaches_destination = next_cursor.pos == destination;
 
-        if exceeds_day_steps || exceeds_fuel || !reaches_destination {
-            return false;
+        if exceeds_day_steps {
+            return ActionInsertResult::StepRejected;
+        }
+        if exceeds_fuel {
+            return ActionInsertResult::FuelRejected;
+        }
+        if !reaches_destination {
+            return ActionInsertResult::Invalid;
         }
 
         self.plan.extend_actions(agent_id, actions);
@@ -164,7 +191,7 @@ impl PlanningState {
         }
         cursor.pos = destination;
         cursor.pos_history = next_pos_history;
-        true
+        ActionInsertResult::Added
     }
 
     /// Pads each agent's unfinished plan with a wait action.

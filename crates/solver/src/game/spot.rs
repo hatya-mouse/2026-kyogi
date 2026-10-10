@@ -6,6 +6,10 @@ impl Brand {
     pub fn new(id: i64) -> Self {
         Self(id)
     }
+
+    pub(crate) fn id(&self) -> i64 {
+        self.0
+    }
 }
 
 /// Spot that offers some Udons.

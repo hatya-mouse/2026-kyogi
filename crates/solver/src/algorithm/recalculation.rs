@@ -143,24 +143,33 @@ impl Solver<'_> {
         cost_map: &CostMap,
         patrol_id: usize,
     ) {
+        let mut excluded_assignments = HashSet::new();
         loop {
-            let assignments = self.distribute_agents(day, state, cost_map);
+            let assignments =
+                self.distribute_patrol(day, state, cost_map, patrol_id, &excluded_assignments);
 
             let mut added = false;
+            let mut failed = false;
             for assignment in assignments {
                 if assignment.agent_id != patrol_id {
                     continue;
                 }
-                if !self.try_add_assignment(state, day, cost_map, &assignment) {
-                    continue;
+                if !matches!(
+                    self.try_add_assignment(state, day, cost_map, &assignment),
+                    super::AssignmentAttempt::Added
+                ) {
+                    excluded_assignments.insert((assignment.agent_id, assignment.cell_id));
+                    failed = true;
+                    break;
                 }
 
                 self.visited_spot(state, patrol_id, assignment.cell_id);
+                excluded_assignments.clear();
                 added = true;
                 break;
             }
 
-            if !added {
+            if !added && !failed {
                 break;
             }
         }
